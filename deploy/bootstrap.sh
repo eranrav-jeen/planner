@@ -77,7 +77,8 @@ EOF
   chmod 600 ~/.ssh/config
 fi
 
-if ! ssh -T git@github.com -o BatchMode=yes -o StrictHostKeyChecking=accept-new 2>&1 | grep -q "successfully authenticated"; then
+ssh_output=$(ssh -T git@github.com -o BatchMode=yes -o StrictHostKeyChecking=accept-new 2>&1 || true)
+if [[ "$ssh_output" != *"successfully authenticated"* ]]; then
   echo ""
   echo "=================================================="
   echo "Add this deploy key to the GitHub repo (read-only is fine),"
