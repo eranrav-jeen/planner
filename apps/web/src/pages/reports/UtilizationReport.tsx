@@ -12,6 +12,7 @@ import { utilizationClass } from '../planning/gridUtils';
 import { cn } from '../../lib/utils';
 import { ExportButton } from './ExportButton';
 import { MonthRangeControl } from './MonthRangeControl';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 import type { UtilizationRow } from '../../api/reports';
 
 export function UtilizationReport() {
@@ -22,7 +23,7 @@ export function UtilizationReport() {
 
   const to = addMonthsToKey(windowStart, windowSize - 1);
   const { data: employeesData } = useEmployees({ isActive: 'true' });
-  const { data, isLoading } = useUtilizationReport(windowStart, to, { employeeId: employeeId || undefined });
+  const { data, isLoading, isError, refetch } = useUtilizationReport(windowStart, to, { employeeId: employeeId || undefined });
   const { sorted, sortKey, sortDir, toggle } = useSort<UtilizationRow>(data?.rows ?? [], 'employeeName', 'asc');
 
   return (
@@ -59,13 +60,14 @@ export function UtilizationReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={5} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow
+              colSpan={5}
+              isLoading={isLoading}
+              isError={isError}
+              isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
+              emptyMessage="No allocations in this range."
+              onRetry={refetch}
+            />
             {sorted.map((row) => (
               <tr key={`${row.employeeId}-${row.month}`} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">{row.employeeName}</td>

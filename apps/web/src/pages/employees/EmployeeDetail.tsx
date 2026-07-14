@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { ErrorState } from '../../components/ui/error-state';
 import { EmployeeForm } from './EmployeeForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatHours } from '../../lib/format';
@@ -16,15 +17,18 @@ export function EmployeeDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-  const { data: employee, isLoading } = useEmployee(id);
+  const { data: employee, isLoading, isError, refetch } = useEmployee(id);
   const updateEmployee = useUpdateEmployee(id!);
   const deleteEmployee = useDeleteEmployee();
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  if (isLoading || !employee) {
+  if (isLoading) {
     return <div className="text-sm text-muted">Loading...</div>;
+  }
+  if (isError || !employee) {
+    return <ErrorState message="Couldn't load this employee." onRetry={refetch} />;
   }
 
   return (

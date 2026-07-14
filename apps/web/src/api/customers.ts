@@ -5,6 +5,7 @@ import type { Customer, Paginated } from './types';
 export interface CustomerFilters extends Record<string, string | undefined> {
   search?: string;
   status?: string;
+  page?: string;
 }
 
 function toQueryString(params: Record<string, string | undefined>) {

@@ -6,6 +6,7 @@ export interface EmployeeFilters extends Record<string, string | undefined> {
   search?: string;
   department?: string;
   isActive?: string;
+  page?: string;
 }
 
 function toQueryString(params: Record<string, string | undefined>) {

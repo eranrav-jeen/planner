@@ -8,6 +8,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { TableStatusRow } from '../../components/ui/table-status-row';
+import { Pagination } from '../../components/ui/pagination';
 import { EmployeeForm } from './EmployeeForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import type { Employee } from '../../api/types';
@@ -17,10 +19,11 @@ export function EmployeesList() {
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { data, isLoading } = useEmployees({ search });
+  const { data, isLoading, isError, refetch } = useEmployees({ search, page: String(page) });
   const createEmployee = useCreateEmployee();
   const deleteEmployee = useDeleteEmployee();
 
@@ -52,7 +55,10 @@ export function EmployeesList() {
             placeholder="Search employees..."
             className="ps-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
       </div>
@@ -69,13 +75,14 @@ export function EmployeesList() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow
+              colSpan={6}
+              isLoading={isLoading}
+              isError={isError}
+              isEmpty={!isLoading && !isError && data?.items.length === 0}
+              emptyMessage="No employees yet."
+              onRetry={refetch}
+            />
             {data?.items.map((employee) => (
               <tr
                 key={employee.id}
@@ -112,6 +119,7 @@ export function EmployeesList() {
             ))}
           </tbody>
         </table>
+        {data && <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />}
       </Card>
       <EmployeeForm
         open={formOpen}

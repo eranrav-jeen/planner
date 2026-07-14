@@ -7,6 +7,7 @@ import { useDashboardSummary, useForecastReport, useUtilizationReport } from '..
 import { addMonthsToKey, currentMonthKey, monthShortLabel } from '../lib/months';
 import { formatCurrency, formatHours, formatPercent } from '../lib/format';
 import { utilizationClass } from './planning/gridUtils';
+import { ErrorState } from '../components/ui/error-state';
 import { cn } from '../lib/utils';
 
 const HEATMAP_MONTHS = 6;
@@ -16,12 +17,23 @@ export function Dashboard() {
   const from = currentMonthKey();
   const to = addMonthsToKey(from, HEATMAP_MONTHS - 1);
 
-  const { data: summary } = useDashboardSummary();
+  const { data: summary, isError: summaryError, refetch: refetchSummary } = useDashboardSummary();
   const { data: forecast } = useForecastReport(from, to);
   const { data: utilization } = useUtilizationReport(from, to);
 
   const employeeNames = Array.from(new Map((utilization?.rows ?? []).map((r) => [r.employeeId, r.employeeName])));
   const months = Array.from({ length: HEATMAP_MONTHS }, (_, i) => addMonthsToKey(from, i));
+
+  if (summaryError) {
+    return (
+      <div>
+        <PageHeader title={t('nav.dashboard')} />
+        <Card>
+          <ErrorState message="Couldn't load dashboard data." onRetry={refetchSummary} />
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>

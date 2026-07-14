@@ -9,6 +9,7 @@ import { useCustomers } from '../../api/customers';
 import { useGanttProjects, type GanttProjectRow } from '../../api/gantt';
 import { useLanguage } from '../../lib/i18n';
 import { ExportButton } from '../reports/ExportButton';
+import { ErrorState } from '../../components/ui/error-state';
 import { GanttTooltip } from './GanttTooltip';
 import { STATUS_BAR_COLORS } from './statusColors';
 
@@ -29,7 +30,7 @@ export function GanttPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const { data: customersData } = useCustomers();
-  const { data, isLoading } = useGanttProjects(customerId || undefined);
+  const { data, isLoading, isError, refetch } = useGanttProjects(customerId || undefined);
 
   const rowsById = useMemo(() => {
     const map = new Map<string, GanttProjectRow>();
@@ -141,10 +142,11 @@ export function GanttPage() {
 
       <Card className="overflow-x-auto p-2">
         {isLoading && <div className="p-10 text-center text-sm text-muted">Loading...</div>}
-        {!isLoading && tasks.length === 0 && (
+        {isError && <ErrorState onRetry={refetch} />}
+        {!isLoading && !isError && tasks.length === 0 && (
           <div className="p-10 text-center text-sm text-muted">No projects with dates to display.</div>
         )}
-        {!isLoading && tasks.length > 0 && (
+        {!isLoading && !isError && tasks.length > 0 && (
           <div dir="ltr">
             <Gantt
               tasks={tasks}

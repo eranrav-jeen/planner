@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { ErrorState } from '../../components/ui/error-state';
 import { CustomerForm } from './CustomerForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatCurrency, formatHours } from '../../lib/format';
@@ -16,15 +17,18 @@ export function CustomerDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-  const { data: customer, isLoading } = useCustomer(id);
+  const { data: customer, isLoading, isError, refetch } = useCustomer(id);
   const updateCustomer = useUpdateCustomer(id!);
   const deleteCustomer = useDeleteCustomer();
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  if (isLoading || !customer) {
+  if (isLoading) {
     return <div className="text-sm text-muted">Loading...</div>;
+  }
+  if (isError || !customer) {
+    return <ErrorState message="Couldn't load this customer." onRetry={refetch} />;
   }
 
   const projects = customer.projects ?? [];

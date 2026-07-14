@@ -5,10 +5,11 @@ import { SortHeader } from '../../components/ui/sortHeader';
 import { useSort } from '../../lib/useSort';
 import { formatCurrency, formatHours } from '../../lib/format';
 import { ExportButton } from './ExportButton';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 import type { PortfolioRow } from '../../api/reports';
 
 export function PortfolioReport() {
-  const { data, isLoading } = usePortfolioReport();
+  const { data, isLoading, isError, refetch } = usePortfolioReport();
   const { sorted, sortKey, sortDir, toggle } = useSort<PortfolioRow>(data?.rows ?? [], 'totalIncome', 'desc');
 
   const totals = (data?.rows ?? []).reduce(
@@ -39,13 +40,7 @@ export function PortfolioReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow colSpan={6} isLoading={isLoading} isError={isError} onRetry={refetch} />
             {sorted.map((row) => (
               <tr key={row.customerId} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">{row.customerName}</td>

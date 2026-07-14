@@ -9,6 +9,7 @@ import { addMonthsToKey, currentMonthKey } from '../../lib/months';
 import { formatCurrency } from '../../lib/format';
 import { ExportButton } from './ExportButton';
 import { MonthRangeControl } from './MonthRangeControl';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 
 interface ProjectForecastRow {
   projectId: string;
@@ -32,7 +33,7 @@ export function ForecastReport() {
   const [windowSize, setWindowSize] = useState(6);
   const to = addMonthsToKey(windowStart, windowSize - 1);
 
-  const { data, isLoading } = useForecastReport(windowStart, to);
+  const { data, isLoading, isError, refetch } = useForecastReport(windowStart, to);
   const rows: ProjectForecastRow[] = (data?.byProject ?? []).map((p) => ({
     projectId: p.projectId,
     projectName: p.projectName,
@@ -77,13 +78,7 @@ export function ForecastReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={4} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow colSpan={4} isLoading={isLoading} isError={isError} onRetry={refetch} />
             {sorted.map((row) => (
               <tr key={row.projectId} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">

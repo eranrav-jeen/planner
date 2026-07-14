@@ -8,12 +8,13 @@ import { SortHeader } from '../../components/ui/sortHeader';
 import { useSort } from '../../lib/useSort';
 import { formatCurrency, formatPercent } from '../../lib/format';
 import { ExportButton } from './ExportButton';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 import type { ProfitabilityRow } from '../../api/reports';
 
 export function ProfitabilityReport() {
   const [customerId, setCustomerId] = useState('');
   const { data: customersData } = useCustomers();
-  const { data, isLoading } = useProfitabilityReport({ customerId: customerId || undefined });
+  const { data, isLoading, isError, refetch } = useProfitabilityReport({ customerId: customerId || undefined });
   const { sorted, sortKey, sortDir, toggle } = useSort<ProfitabilityRow>(data?.rows ?? [], 'margin', 'desc');
 
   const totals = (data?.rows ?? []).reduce(
@@ -48,13 +49,14 @@ export function ProfitabilityReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={7} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow
+              colSpan={7}
+              isLoading={isLoading}
+              isError={isError}
+              isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
+              emptyMessage="No projects match these filters."
+              onRetry={refetch}
+            />
             {sorted.map((row) => (
               <tr key={row.projectId} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">

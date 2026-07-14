@@ -8,6 +8,7 @@ import { addMonthsToKey, currentMonthKey } from '../../lib/months';
 import { formatHours } from '../../lib/format';
 import { ExportButton } from './ExportButton';
 import { MonthRangeControl } from './MonthRangeControl';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 
 interface Row {
   month: string;
@@ -22,7 +23,7 @@ export function DemandCapacityReport() {
   const [windowSize, setWindowSize] = useState(6);
   const to = addMonthsToKey(windowStart, windowSize - 1);
 
-  const { data, isLoading } = useDemandCapacityReport(windowStart, to);
+  const { data, isLoading, isError, refetch } = useDemandCapacityReport(windowStart, to);
   const { sorted, sortKey, sortDir, toggle } = useSort<Row>(data?.rows ?? [], 'month', 'asc');
 
   const totals = (data?.rows ?? []).reduce(
@@ -53,13 +54,7 @@ export function DemandCapacityReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={4} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow colSpan={4} isLoading={isLoading} isError={isError} onRetry={refetch} />
             {sorted.map((row) => (
               <tr key={row.month} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">{row.month}</td>

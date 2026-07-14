@@ -16,6 +16,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input, Select } from '../../components/ui/input';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { ErrorState } from '../../components/ui/error-state';
 import { ProjectForm } from './ProjectForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatCurrency, formatHours, formatPercent } from '../../lib/format';
@@ -122,15 +123,18 @@ export function ProjectDetail() {
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const canSeeMargin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
-  const { data: project, isLoading } = useProject(id);
+  const { data: project, isLoading, isError, refetch } = useProject(id);
   const updateProject = useUpdateProject(id!);
   const deleteProject = useDeleteProject();
   const [formOpen, setFormOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  if (isLoading || !project) {
+  if (isLoading) {
     return <div className="text-sm text-muted">Loading...</div>;
+  }
+  if (isError || !project) {
+    return <ErrorState message="Couldn't load this project." onRetry={refetch} />;
   }
 
   const burn = project.burn ?? { hoursPaid: Number(project.hoursPaid), consumed: 0, remaining: Number(project.hoursPaid) };

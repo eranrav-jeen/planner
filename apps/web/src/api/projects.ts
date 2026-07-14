@@ -6,6 +6,7 @@ export interface ProjectFilters extends Record<string, string | undefined> {
   search?: string;
   status?: string;
   customerId?: string;
+  page?: string;
 }
 
 function toQueryString(params: Record<string, string | undefined>) {

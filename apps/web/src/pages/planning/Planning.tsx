@@ -15,6 +15,7 @@ import { addMonthsToKey, currentMonthKey, monthRange, monthShortLabel } from '..
 import { cellKey } from './gridUtils';
 import { EmployeePivot } from './EmployeePivot';
 import { ProjectPivot } from './ProjectPivot';
+import { ErrorState } from '../../components/ui/error-state';
 import { cn } from '../../lib/utils';
 
 const DEFAULT_WINDOW_SIZE = 7;
@@ -48,7 +49,9 @@ export function Planning() {
   }, [projects, selectedProjectId]);
 
   const projectFilter = pivot === 'project' ? selectedProjectId : undefined;
-  const { data: allocations = [] } = useAllocations(from, to, { projectId: projectFilter });
+  const { data: allocations = [], isError: allocationsError, refetch: refetchAllocations } = useAllocations(from, to, {
+    projectId: projectFilter,
+  });
   const { data: overrides = [] } = useCapacityOverrides(from, to);
   const { data: allAssignments = [] } = useAssignments(pivot === 'project' ? { projectId: selectedProjectId } : {});
 
@@ -172,7 +175,9 @@ export function Planning() {
       </div>
 
       <Card className="overflow-x-auto">
-        {pivot === 'employee' ? (
+        {allocationsError ? (
+          <ErrorState message="Couldn't load the planning grid." onRetry={refetchAllocations} />
+        ) : pivot === 'employee' ? (
           <EmployeePivot
             employees={employees}
             months={months}

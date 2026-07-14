@@ -2,7 +2,7 @@
 
 Internal project planning tool for Jeen.AI — customers, projects, employees, monthly resourcing plans, reports, and a Gantt view, exportable to Excel and PDF.
 
-Built per `SPEC.md` (Phase 0–4 implemented so far; see **Build status** below).
+Built per `SPEC.md` (Phase 0–6 implemented; see **Build status** below).
 
 ## Stack
 
@@ -31,7 +31,8 @@ See `.env.example`. Notable ones:
 
 - `DEFAULT_MONTHLY_CAPACITY_HOURS=186` — default employee capacity per month.
 - `PLANNING_WINDOW_MONTHS=6` — default window shown in the planning grid (Phase 2).
-- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — bootstrap admin account created by `prisma/seed.ts`. Auth is simple email+password (bcrypt + JWT), no external SSO.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` — bootstrap admin account created by `prisma/seed.ts`. Auth is simple email+password (bcrypt + JWT), no external SSO. Additional users (any role) are managed afterward from `/settings` in the app itself.
+- `SEED_DEMO_DATA` — set to `true` to have `prisma/seed.ts` also insert sample customers/employees/projects/allocations. Leave unset/`false` in production.
 
 ## Build status (phased per SPEC.md §12)
 
@@ -41,7 +42,7 @@ See `.env.example`. Notable ones:
 - [x] **Phase 3 — Reports & Dashboard**: six report services (utilization, demand/capacity, project burn, profitability, customer portfolio, revenue forecast) + filterable/sortable report pages, and a dashboard with live cards, at-risk list, revenue chart, and team utilization heatmap.
 - [x] **Phase 4 — Gantt**: `GET /api/gantt/projects` + a project Gantt at `/gantt` (`gantt-task-react`) grouped by customer (collapsible), colored by status, progress fill from hours consumed, week/month/quarter zoom, hover tooltip, click-through to project detail. Resource Gantt (per-employee) is out of scope for v1 per spec §4.7.
 - [x] **Phase 5 — Exports**: `GET /api/export/:report.:format` (xlsx via ExcelJS — frozen header, column formats, totals row, title/meta block; pdf via Puppeteer — print-styled HTML template with the Jeen logo) for all six reports plus the Gantt. Excel/PDF buttons on every report page and the Gantt page trigger real downloads.
-- [ ] **Phase 6 — Polish & Ops** (virtualization, hardening, docs).
+- [x] **Phase 6 — Polish & Ops**: Admin-only user management (`/settings` — create/edit/deactivate/delete logins, assign roles); consistent loading/error/empty states everywhere (with retry) instead of silent or stuck-loading failures; pagination controls on the Customers/Employees/Projects lists (previously silently capped at 25 rows with no way to see more — now fixed); `helmet` security headers on the API. Table virtualization was attempted for the Utilization report but reverted after it produced a rendering bug (rows and totals interleaving incorrectly) — see the Notes below for the reasoning and current scale limits.
 
 ## Deployment (Oracle Ubuntu host: nginx + pm2 + Postgres)
 
@@ -66,3 +67,6 @@ See `.env.example`. Notable ones:
 - The Gantt chart itself always renders left-to-right (a `dir="ltr"` wrapper) regardless of app language — `gantt-task-react`'s own `rtl` mode has a bug that throws on render, and timelines conventionally stay LTR even in RTL apps. Its "Quarter" zoom maps to the library's `Year` view mode, the coarsest one it offers (it has no native quarter granularity).
 - Deleting a customer, employee, or project is a **real, permanent delete** (not a soft deactivate) — Admin/Manager only. Deleting a project cascades its team assignments and monthly allocations. Deleting a customer is blocked while it still has projects (delete/reassign those first) so financial history is never silently orphaned. To mark something inactive without deleting it, just edit its status field instead.
 - `prisma/seed.ts` always ensures the admin user and app settings exist, but only inserts sample customers/employees/projects/allocations when `SEED_DEMO_DATA=true` is set — so re-running it in production (e.g. via `deploy/bootstrap.sh` on every deploy) never resurrects demo data you've since deleted.
+- Only Admins can reach `/settings` (user management); everyone else sees a plain "Admins only" message rather than a broken page. Users can't delete their own account or view others' passwords (obviously) — password resets go through the same form, leave it blank to keep the current one.
+- Customers/Employees/Projects lists paginate at 25 rows per page. The Planning grid and Gantt don't paginate — at the spec's target scale (~200 employees × ~300 projects) they still render comfortably as plain tables since only the *parent* rows are always mounted (project/employee detail rows only mount when expanded), so a virtualization library isn't pulled in for something DOM-light. The one place row count could genuinely explode — the Employee Utilization report (up to employees × months rows) — got a virtualization pass with `@tanstack/react-virtual` that was reverted after shipping a real bug (rows and the totals footer interleaving mid-scroll); it's back to a plain table. If utilization data grows into the thousands of rows, revisit virtualization there specifically, testing the scroll-container height measurement carefully before shipping it.
+- The API sets standard security headers via `helmet` (CSP, HSTS, `X-Frame-Options`, etc.). CORS is locked to same-origin in production (`origin: false`) since nginx serves both the API and the static frontend from the same domain; only the `/auth` routes are rate-limited (20 requests / 15 min) per spec.

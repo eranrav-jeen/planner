@@ -8,13 +8,17 @@ import { SortHeader } from '../../components/ui/sortHeader';
 import { useSort } from '../../lib/useSort';
 import { formatHours, formatPercent } from '../../lib/format';
 import { ExportButton } from './ExportButton';
+import { TableStatusRow } from '../../components/ui/table-status-row';
 import type { ProjectBurnRow } from '../../api/reports';
 
 export function ProjectBurnReport() {
   const [customerId, setCustomerId] = useState('');
   const [status, setStatus] = useState('');
   const { data: customersData } = useCustomers();
-  const { data, isLoading } = useProjectBurnReport({ customerId: customerId || undefined, status: status || undefined });
+  const { data, isLoading, isError, refetch } = useProjectBurnReport({
+    customerId: customerId || undefined,
+    status: status || undefined,
+  });
   const { sorted, sortKey, sortDir, toggle } = useSort<ProjectBurnRow>(data?.rows ?? [], 'projectName', 'asc');
 
   const totals = (data?.rows ?? []).reduce(
@@ -63,13 +67,14 @@ export function ProjectBurnReport() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={8} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
+            <TableStatusRow
+              colSpan={8}
+              isLoading={isLoading}
+              isError={isError}
+              isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
+              emptyMessage="No projects match these filters."
+              onRetry={refetch}
+            />
             {sorted.map((row) => (
               <tr key={row.projectId} className="border-b border-border last:border-0">
                 <td className="px-5 py-2.5 font-medium">

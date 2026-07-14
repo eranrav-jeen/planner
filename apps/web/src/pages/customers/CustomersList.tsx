@@ -8,6 +8,8 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input, Select } from '../../components/ui/input';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
+import { TableStatusRow } from '../../components/ui/table-status-row';
+import { Pagination } from '../../components/ui/pagination';
 import { CustomerForm } from './CustomerForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import type { Customer } from '../../api/types';
@@ -18,10 +20,15 @@ export function CustomersList() {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { data, isLoading } = useCustomers({ search, status: status || undefined });
+  const { data, isLoading, isError, refetch } = useCustomers({
+    search,
+    status: status || undefined,
+    page: String(page),
+  });
   const createCustomer = useCreateCustomer();
   const deleteCustomer = useDeleteCustomer();
 
@@ -53,10 +60,20 @@ export function CustomersList() {
             placeholder="Search customers..."
             className="ps-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
-        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-44">
+        <Select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setPage(1);
+          }}
+          className="w-44"
+        >
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="prospect">Prospect</option>
@@ -74,20 +91,14 @@ export function CustomersList() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr>
-                <td colSpan={4} className="px-5 py-6 text-center text-muted">
-                  Loading...
-                </td>
-              </tr>
-            )}
-            {!isLoading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-5 py-6 text-center text-muted">
-                  No customers yet.
-                </td>
-              </tr>
-            )}
+            <TableStatusRow
+              colSpan={4}
+              isLoading={isLoading}
+              isError={isError}
+              isEmpty={!isLoading && !isError && data?.items.length === 0}
+              emptyMessage="No customers yet."
+              onRetry={refetch}
+            />
             {data?.items.map((customer) => (
               <tr
                 key={customer.id}
@@ -118,6 +129,7 @@ export function CustomersList() {
             ))}
           </tbody>
         </table>
+        {data && <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />}
       </Card>
       <CustomerForm
         open={formOpen}
