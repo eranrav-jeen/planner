@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { useCreateEmployee, useEmployees } from '../../api/employees';
+import { Plus, Search, Trash2 } from 'lucide-react';
+import { useCreateEmployee, useEmployees, useDeleteEmployee } from '../../api/employees';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { EmployeeForm } from './EmployeeForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
+import type { Employee } from '../../api/types';
 
 export function EmployeesList() {
   const navigate = useNavigate();
@@ -16,8 +18,20 @@ export function EmployeesList() {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { data, isLoading } = useEmployees({ search });
   const createEmployee = useCreateEmployee();
+  const deleteEmployee = useDeleteEmployee();
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    deleteEmployee.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+    });
+  }
 
   return (
     <div>
@@ -51,12 +65,13 @@ export function EmployeesList() {
               <th className="px-5 py-3 text-start font-medium">Department</th>
               <th className="px-5 py-3 text-start font-medium">Capacity</th>
               <th className="px-5 py-3 text-start font-medium">Status</th>
+              {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="px-5 py-6 text-center text-muted">
+                <td colSpan={6} className="px-5 py-6 text-center text-muted">
                   Loading...
                 </td>
               </tr>
@@ -78,6 +93,21 @@ export function EmployeesList() {
                     {employee.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </td>
+                {canEdit && (
+                  <td className="px-5 py-3 text-end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteError(null);
+                        setDeleteTarget(employee);
+                      }}
+                      className="text-muted hover:text-coral"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -88,6 +118,15 @@ export function EmployeesList() {
         onOpenChange={setFormOpen}
         isSubmitting={createEmployee.isPending}
         onSubmit={(input) => createEmployee.mutate(input, { onSuccess: () => setFormOpen(false) })}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete employee"
+        description={`Permanently delete "${deleteTarget?.firstName} ${deleteTarget?.lastName}"? This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteEmployee.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   );

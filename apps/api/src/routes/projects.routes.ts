@@ -12,6 +12,7 @@ import {
 import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
+import { assertDeletable } from '../lib/prismaErrors.js';
 
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
@@ -106,7 +107,11 @@ projectsRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    await prisma.project.update({ where: { id: req.params.id }, data: { status: 'cancelled' } });
+    try {
+      await prisma.project.delete({ where: { id: req.params.id } });
+    } catch (err) {
+      assertDeletable(err, 'Cannot delete this project.');
+    }
     res.json({ data: { ok: true } });
   }),
 );

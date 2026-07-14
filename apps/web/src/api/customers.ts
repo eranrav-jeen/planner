@@ -51,7 +51,7 @@ export function useUpdateCustomer(id: string) {
   });
 }
 
-export function useDeactivateCustomer() {
+export function useDeleteCustomer() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete<{ ok: true }>(`/customers/${id}`),

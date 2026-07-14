@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil, ArrowRight } from 'lucide-react';
-import { useCustomer, useUpdateCustomer } from '../../api/customers';
+import { Pencil, ArrowRight, Trash2 } from 'lucide-react';
+import { useCustomer, useUpdateCustomer, useDeleteCustomer } from '../../api/customers';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { CustomerForm } from './CustomerForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatCurrency, formatHours } from '../../lib/format';
 
 export function CustomerDetail() {
@@ -17,7 +18,10 @@ export function CustomerDetail() {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const { data: customer, isLoading } = useCustomer(id);
   const updateCustomer = useUpdateCustomer(id!);
+  const deleteCustomer = useDeleteCustomer();
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading || !customer) {
     return <div className="text-sm text-muted">Loading...</div>;
@@ -34,9 +38,20 @@ export function CustomerDetail() {
         title={customer.name}
         actions={
           canEdit && (
-            <Button variant="secondary" onClick={() => setFormOpen(true)}>
-              <Pencil className="h-4 w-4" /> Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setFormOpen(true)}>
+                <Pencil className="h-4 w-4" /> Edit
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            </div>
           )
         }
       />
@@ -136,6 +151,21 @@ export function CustomerDetail() {
         customer={customer}
         isSubmitting={updateCustomer.isPending}
         onSubmit={(input) => updateCustomer.mutate(input, { onSuccess: () => setFormOpen(false) })}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete customer"
+        description={`Permanently delete "${customer.name}"? This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteCustomer.isPending}
+        onConfirm={() =>
+          deleteCustomer.mutate(customer.id, {
+            onSuccess: () => navigate('/customers'),
+            onError: (err) =>
+              setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+          })
+        }
       />
     </div>
   );

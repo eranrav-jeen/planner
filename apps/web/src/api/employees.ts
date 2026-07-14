@@ -50,7 +50,7 @@ export function useUpdateEmployee(id: string) {
   });
 }
 
-export function useDeactivateEmployee() {
+export function useDeleteEmployee() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.delete<{ ok: true }>(`/employees/${id}`),

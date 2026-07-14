@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { useCreateProject, useProjects } from '../../api/projects';
+import { Plus, Search, Trash2 } from 'lucide-react';
+import { useCreateProject, useProjects, useDeleteProject } from '../../api/projects';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input, Select } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProjectForm } from './ProjectForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatCurrency, formatHours } from '../../lib/format';
+import type { Project } from '../../api/types';
 
 export function ProjectsList() {
   const navigate = useNavigate();
@@ -18,8 +20,20 @@ export function ProjectsList() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { data, isLoading } = useProjects({ search, status: status || undefined });
   const createProject = useCreateProject();
+  const deleteProject = useDeleteProject();
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    deleteProject.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+    });
+  }
 
   return (
     <div>
@@ -61,12 +75,13 @@ export function ProjectsList() {
               <th className="px-5 py-3 text-start font-medium">Status</th>
               <th className="px-5 py-3 text-start font-medium">Income</th>
               <th className="px-5 py-3 text-start font-medium">Hours paid</th>
+              {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={5} className="px-5 py-6 text-center text-muted">
+                <td colSpan={6} className="px-5 py-6 text-center text-muted">
                   Loading...
                 </td>
               </tr>
@@ -88,6 +103,21 @@ export function ProjectsList() {
                   {formatCurrency(Number(project.incomeAmount), project.currency)}
                 </td>
                 <td className="px-5 py-3 tabular-nums">{formatHours(Number(project.hoursPaid))}</td>
+                {canEdit && (
+                  <td className="px-5 py-3 text-end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteError(null);
+                        setDeleteTarget(project);
+                      }}
+                      className="text-muted hover:text-coral"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -98,6 +128,15 @@ export function ProjectsList() {
         onOpenChange={setFormOpen}
         isSubmitting={createProject.isPending}
         onSubmit={(input) => createProject.mutate(input, { onSuccess: () => setFormOpen(false) })}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete project"
+        description={`Permanently delete "${deleteTarget?.name}"? This removes its team assignments and monthly allocations too. This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteProject.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   );

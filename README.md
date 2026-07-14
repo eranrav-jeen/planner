@@ -2,7 +2,7 @@
 
 Internal project planning tool for Jeen.AI — customers, projects, employees, monthly resourcing plans, reports, and a Gantt view, exportable to Excel and PDF.
 
-Built per `SPEC.md` (Phase 0–1 implemented so far; see **Build status** below).
+Built per `SPEC.md` (Phase 0–4 implemented so far; see **Build status** below).
 
 ## Stack
 
@@ -17,7 +17,7 @@ npm install
 cp .env.example .env   # fill in DATABASE_URL, JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
 
 npm run prisma:migrate   # create the schema
-npm run prisma:seed      # demo customers/employees/projects/allocations + admin user
+npm run prisma:seed      # admin user + app settings; set SEED_DEMO_DATA=true for sample customers/employees/projects/allocations too
 
 npm run dev:api   # http://localhost:4000
 npm run dev:web   # http://localhost:5173 (proxies /api to the API)
@@ -62,3 +62,5 @@ See `.env.example`. Notable ones:
 - `cost_rate_hourly` / profitability figures are hidden from the `VIEWER` role.
 - RTL (Hebrew) is the default locale; toggle to English from the top bar. UI strings are centralized in `apps/web/src/lib/i18n.tsx`.
 - The Gantt chart itself always renders left-to-right (a `dir="ltr"` wrapper) regardless of app language — `gantt-task-react`'s own `rtl` mode has a bug that throws on render, and timelines conventionally stay LTR even in RTL apps. Its "Quarter" zoom maps to the library's `Year` view mode, the coarsest one it offers (it has no native quarter granularity).
+- Deleting a customer, employee, or project is a **real, permanent delete** (not a soft deactivate) — Admin/Manager only. Deleting a project cascades its team assignments and monthly allocations. Deleting a customer is blocked while it still has projects (delete/reassign those first) so financial history is never silently orphaned. To mark something inactive without deleting it, just edit its status field instead.
+- `prisma/seed.ts` always ensures the admin user and app settings exist, but only inserts sample customers/employees/projects/allocations when `SEED_DEMO_DATA=true` is set — so re-running it in production (e.g. via `deploy/bootstrap.sh` on every deploy) never resurrects demo data you've since deleted.

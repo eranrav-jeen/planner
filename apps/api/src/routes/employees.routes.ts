@@ -8,6 +8,7 @@ import { employeeInputSchema, employeeListQuerySchema } from '../schemas/employe
 import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
+import { assertDeletable } from '../lib/prismaErrors.js';
 import type { Request } from 'express';
 
 export const employeesRouter = Router();
@@ -96,7 +97,11 @@ employeesRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    await prisma.employee.update({ where: { id: req.params.id }, data: { isActive: false } });
+    try {
+      await prisma.employee.delete({ where: { id: req.params.id } });
+    } catch (err) {
+      assertDeletable(err, 'Cannot delete this employee while a login account is linked to them. Unlink or delete that user first.');
+    }
     res.json({ data: { ok: true } });
   }),
 );

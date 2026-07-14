@@ -40,6 +40,11 @@ async function main() {
     },
   });
 
+  if (process.env.SEED_DEMO_DATA !== 'true') {
+    console.log('Skipping demo data (set SEED_DEMO_DATA=true to seed sample customers/employees/projects).');
+    return;
+  }
+
   const employeesData = [
     { firstName: 'Noa', lastName: 'Levi', email: 'noa.levi@jeen.ai', title: 'Delivery Lead', department: 'Delivery', employmentType: 'full_time' as const, monthlyCapacityHours: 186, costRateHourly: 220 },
     { firstName: 'Itai', lastName: 'Mizrahi', email: 'itai.mizrahi@jeen.ai', title: 'Senior Engineer', department: 'Engineering', employmentType: 'full_time' as const, monthlyCapacityHours: 186, costRateHourly: 260 },

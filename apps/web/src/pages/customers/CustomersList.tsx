@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
-import { useCreateCustomer, useCustomers } from '../../api/customers';
+import { Plus, Search, Trash2 } from 'lucide-react';
+import { useCreateCustomer, useCustomers, useDeleteCustomer } from '../../api/customers';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input, Select } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { CustomerForm } from './CustomerForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
+import type { Customer } from '../../api/types';
 
 export function CustomersList() {
   const navigate = useNavigate();
@@ -17,8 +19,20 @@ export function CustomersList() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { data, isLoading } = useCustomers({ search, status: status || undefined });
   const createCustomer = useCreateCustomer();
+  const deleteCustomer = useDeleteCustomer();
+
+  function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    deleteCustomer.mutate(deleteTarget.id, {
+      onSuccess: () => setDeleteTarget(null),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+    });
+  }
 
   return (
     <div>
@@ -56,19 +70,20 @@ export function CustomersList() {
               <th className="px-5 py-3 text-start font-medium">Name</th>
               <th className="px-5 py-3 text-start font-medium">Contact</th>
               <th className="px-5 py-3 text-start font-medium">Status</th>
+              {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={3} className="px-5 py-6 text-center text-muted">
+                <td colSpan={4} className="px-5 py-6 text-center text-muted">
                   Loading...
                 </td>
               </tr>
             )}
             {!isLoading && data?.items.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-5 py-6 text-center text-muted">
+                <td colSpan={4} className="px-5 py-6 text-center text-muted">
                   No customers yet.
                 </td>
               </tr>
@@ -84,6 +99,21 @@ export function CustomersList() {
                 <td className="px-5 py-3">
                   <Badge status={customer.status}>{customer.status}</Badge>
                 </td>
+                {canEdit && (
+                  <td className="px-5 py-3 text-end">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteError(null);
+                        setDeleteTarget(customer);
+                      }}
+                      className="text-muted hover:text-coral"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -96,6 +126,15 @@ export function CustomersList() {
         onSubmit={(input) =>
           createCustomer.mutate(input, { onSuccess: () => setFormOpen(false) })
         }
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete customer"
+        description={`Permanently delete "${deleteTarget?.name}"? This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteCustomer.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   );

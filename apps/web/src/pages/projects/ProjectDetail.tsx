@@ -1,16 +1,23 @@
 import { useState, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Pencil, Trash2, UserPlus } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { useAddAssignment, useProject, useRemoveAssignment, useUpdateProject } from '../../api/projects';
+import {
+  useAddAssignment,
+  useDeleteProject,
+  useProject,
+  useRemoveAssignment,
+  useUpdateProject,
+} from '../../api/projects';
 import { useEmployees } from '../../api/employees';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Input, Select } from '../../components/ui/input';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ProjectForm } from './ProjectForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatCurrency, formatHours, formatPercent } from '../../lib/format';
 import { cn } from '../../lib/utils';
 
@@ -111,12 +118,16 @@ function TeamTab({ projectId }: { projectId: string }) {
 
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const canSeeMargin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const { data: project, isLoading } = useProject(id);
   const updateProject = useUpdateProject(id!);
+  const deleteProject = useDeleteProject();
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading || !project) {
     return <div className="text-sm text-muted">Loading...</div>;
@@ -131,9 +142,20 @@ export function ProjectDetail() {
         title={`${project.name} (${project.code})`}
         actions={
           canEdit && (
-            <Button variant="secondary" onClick={() => setFormOpen(true)}>
-              <Pencil className="h-4 w-4" /> Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setFormOpen(true)}>
+                <Pencil className="h-4 w-4" /> Edit
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            </div>
           )
         }
       />
@@ -210,6 +232,21 @@ export function ProjectDetail() {
         project={project}
         isSubmitting={updateProject.isPending}
         onSubmit={(input) => updateProject.mutate(input, { onSuccess: () => setFormOpen(false) })}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete project"
+        description={`Permanently delete "${project.name}"? This removes its team assignments and monthly allocations too. This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteProject.isPending}
+        onConfirm={() =>
+          deleteProject.mutate(project.id, {
+            onSuccess: () => navigate('/projects'),
+            onError: (err) =>
+              setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+          })
+        }
       />
     </div>
   );

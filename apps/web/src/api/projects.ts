@@ -50,6 +50,14 @@ export function useUpdateProject(id: string) {
   });
 }
 
+export function useDeleteProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ ok: true }>(`/projects/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
+  });
+}
+
 export function useAddAssignment(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({

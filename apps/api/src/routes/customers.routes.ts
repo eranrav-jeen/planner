@@ -8,6 +8,7 @@ import { customerInputSchema, customerListQuerySchema } from '../schemas/custome
 import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
+import { assertDeletable } from '../lib/prismaErrors.js';
 
 export const customersRouter = Router();
 customersRouter.use(requireAuth);
@@ -76,7 +77,11 @@ customersRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
-    await prisma.customer.update({ where: { id: req.params.id }, data: { status: 'inactive' } });
+    try {
+      await prisma.customer.delete({ where: { id: req.params.id } });
+    } catch (err) {
+      assertDeletable(err, 'Cannot delete this customer while it still has projects. Delete those first.');
+    }
     res.json({ data: { ok: true } });
   }),
 );

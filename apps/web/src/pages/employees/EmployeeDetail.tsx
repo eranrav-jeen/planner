@@ -1,22 +1,27 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Pencil } from 'lucide-react';
-import { useEmployee, useUpdateEmployee } from '../../api/employees';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Pencil, Trash2 } from 'lucide-react';
+import { useEmployee, useUpdateEmployee, useDeleteEmployee } from '../../api/employees';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
+import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { EmployeeForm } from './EmployeeForm';
-import { useAuth } from '../../lib/auth';
+import { useAuth, ApiRequestError } from '../../lib/auth';
 import { formatHours } from '../../lib/format';
 
 export function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const { data: employee, isLoading } = useEmployee(id);
   const updateEmployee = useUpdateEmployee(id!);
+  const deleteEmployee = useDeleteEmployee();
   const [formOpen, setFormOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading || !employee) {
     return <div className="text-sm text-muted">Loading...</div>;
@@ -28,9 +33,20 @@ export function EmployeeDetail() {
         title={`${employee.firstName} ${employee.lastName}`}
         actions={
           canEdit && (
-            <Button variant="secondary" onClick={() => setFormOpen(true)}>
-              <Pencil className="h-4 w-4" /> Edit
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setFormOpen(true)}>
+                <Pencil className="h-4 w-4" /> Edit
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            </div>
           )
         }
       />
@@ -110,6 +126,21 @@ export function EmployeeDetail() {
         employee={employee}
         isSubmitting={updateEmployee.isPending}
         onSubmit={(input) => updateEmployee.mutate(input, { onSuccess: () => setFormOpen(false) })}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete employee"
+        description={`Permanently delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`}
+        error={deleteError}
+        isSubmitting={deleteEmployee.isPending}
+        onConfirm={() =>
+          deleteEmployee.mutate(employee.id, {
+            onSuccess: () => navigate('/employees'),
+            onError: (err) =>
+              setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+          })
+        }
       />
     </div>
   );
