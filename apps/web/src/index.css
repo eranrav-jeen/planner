@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --charcoal: #232122;
+  --coral: #e45b4e;
+  --amber: #f3ab56;
+  --lavender: #e7b6eb;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --muted: #6b7280;
+  --success: #3fa372;
+}
+
+html[dir='rtl'] body {
+  font-family: 'Heebo', 'Inter', system-ui, sans-serif;
+}
+
+html[dir='ltr'] body {
+  font-family: 'Inter', 'Heebo', system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--charcoal);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

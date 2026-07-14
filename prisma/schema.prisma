@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum CustomerStatus {
+  active
+  prospect
+  inactive
+}
+
+enum EmploymentType {
+  full_time
+  part_time
+  contractor
+}
+
+enum ProjectStatus {
+  planning
+  active
+  on_hold
+  completed
+  cancelled
+}
+
+enum BillingType {
+  fixed_price
+  time_and_materials
+}
+
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  passwordHash String  @map("password_hash")
+  role       Role      @default(VIEWER)
+  employeeId String?   @unique @map("employee_id")
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Customer {
+  id           String         @id @default(uuid())
+  name         String
+  contactName  String?        @map("contact_name")
+  contactEmail String?        @map("contact_email")
+  status       CustomerStatus @default(prospect)
+  notes        String?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  projects Project[]
+
+  @@index([status])
+  @@map("customers")
+}
+
+model Employee {
+  id                   String         @id @default(uuid())
+  firstName            String         @map("first_name")
+  lastName             String         @map("last_name")
+  email                String         @unique
+  title                String?
+  department           String?
+  employmentType       EmploymentType @default(full_time) @map("employment_type")
+  monthlyCapacityHours Decimal        @default(186) @map("monthly_capacity_hours") @db.Decimal(7, 2)
+  costRateHourly       Decimal?       @map("cost_rate_hourly") @db.Decimal(10, 2)
+  isActive             Boolean        @default(true) @map("is_active")
+  startDate            DateTime?      @map("start_date") @db.Date
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  user               User?
+  assignments        ProjectAssignment[]
+  allocations        MonthlyAllocation[]
+  capacityOverrides  CapacityOverride[]
+
+  @@index([department])
+  @@index([isActive])
+  @@map("employees")
+}
+
+model Project {
+  id            String        @id @default(uuid())
+  customerId    String        @map("customer_id")
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  name          String
+  code          String        @unique
+  status        ProjectStatus @default(planning)
+  startDate     DateTime?     @map("start_date") @db.Date
+  endDate       DateTime?     @map("end_date") @db.Date
+  incomeAmount  Decimal       @default(0) @map("income_amount") @db.Decimal(14, 2)
+  hoursPaid     Decimal       @default(0) @map("hours_paid") @db.Decimal(10, 2)
+  currency      String        @default("ILS")
+  billingType   BillingType   @default(time_and_materials) @map("billing_type")
+  description   String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  assignments ProjectAssignment[]
+  allocations MonthlyAllocation[]
+
+  @@index([customerId])
+  @@index([status])
+  @@map("projects")
+}
+
+model ProjectAssignment {
+  id            String   @id @default(uuid())
+  projectId     String   @map("project_id")
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employeeId    String   @map("employee_id")
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  roleOnProject String?  @map("role_on_project")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([projectId, employeeId])
+  @@map("project_assignments")
+}
+
+model MonthlyAllocation {
+  id            String    @id @default(uuid())
+  employeeId    String    @map("employee_id")
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  projectId     String    @map("project_id")
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  month         DateTime  @db.Date
+  plannedHours  Decimal   @default(0) @map("planned_hours") @db.Decimal(7, 2)
+  actualHours   Decimal?  @map("actual_hours") @db.Decimal(7, 2)
+  note          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([employeeId, projectId, month])
+  @@index([month, employeeId])
+  @@index([projectId, month])
+  @@map("monthly_allocations")
+}
+
+model CapacityOverride {
+  id             String   @id @default(uuid())
+  employeeId     String   @map("employee_id")
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month          DateTime @db.Date
+  capacityHours  Decimal  @map("capacity_hours") @db.Decimal(7, 2)
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeId, month])
+  @@map("capacity_overrides")
+}
+
+model AppSettings {
+  id                     Int    @id @default(1)
+  defaultCurrency        String @default("ILS") @map("default_currency")
+  planningWindowMonths   Int    @default(6) @map("planning_window_months")
+  defaultCapacityHours   Decimal @default(186) @map("default_capacity_hours") @db.Decimal(7, 2)
+
+  @@map("app_settings")
+}
