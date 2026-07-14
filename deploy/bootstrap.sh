@@ -41,8 +41,9 @@ DB_USER="jeen_planner"
 GH_KEY_PATH=~/.ssh/jeen_planner_github_deploy
 
 echo "==> Installing system packages"
-sudo apt-get update -y
-sudo apt-get install -y curl git nginx postgresql postgresql-contrib \
+export DEBIAN_FRONTEND=noninteractive
+sudo -E apt-get update -y
+sudo -E apt-get install -y -o Dpkg::Options::="--force-confdef" curl git nginx postgresql postgresql-contrib \
   certbot python3-certbot-nginx build-essential
 
 if ! command -v node >/dev/null || [[ "$(node -v)" != v20.* && "$(node -v)" != v22.* ]]; then
