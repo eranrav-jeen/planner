@@ -40,7 +40,7 @@ export function DemandCapacityReport() {
           onChangeSize={setWindowSize}
           language={language}
         />
-        <ExportButton />
+        <ExportButton report="demand-capacity" params={{ from: windowStart, to }} />
       </div>
       <Card>
         <table className="w-full text-sm">

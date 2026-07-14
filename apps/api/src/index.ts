@@ -12,6 +12,7 @@ import { allocationsRouter } from './routes/allocations.routes.js';
 import { capacityOverridesRouter } from './routes/capacityOverrides.routes.js';
 import { reportsRouter } from './routes/reports.routes.js';
 import { ganttRouter } from './routes/gantt.routes.js';
+import { exportRouter } from './routes/export.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/allocations', allocationsRouter);
 app.use('/api/capacity-overrides', capacityOverridesRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/gantt', ganttRouter);
+app.use('/api/export', exportRouter);
 
 app.use('/api', notFoundHandler);
 app.use(errorHandler);

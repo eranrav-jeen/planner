@@ -32,7 +32,7 @@ export function ProfitabilityReport() {
             </option>
           ))}
         </Select>
-        <ExportButton />
+        <ExportButton report="profitability" params={{ customerId: customerId || undefined }} />
       </div>
       <Card>
         <table className="w-full text-sm">

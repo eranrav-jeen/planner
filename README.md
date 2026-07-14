@@ -40,16 +40,18 @@ See `.env.example`. Notable ones:
 - [x] **Phase 2 — Monthly Planning**: allocations API (range query, bulk upsert, copy-forward), capacity overrides API, planning grid UI (by-employee and by-project pivots, inline edit, utilization heatmap colors, month window controls, copy-forward).
 - [x] **Phase 3 — Reports & Dashboard**: six report services (utilization, demand/capacity, project burn, profitability, customer portfolio, revenue forecast) + filterable/sortable report pages, and a dashboard with live cards, at-risk list, revenue chart, and team utilization heatmap.
 - [x] **Phase 4 — Gantt**: `GET /api/gantt/projects` + a project Gantt at `/gantt` (`gantt-task-react`) grouped by customer (collapsible), colored by status, progress fill from hours consumed, week/month/quarter zoom, hover tooltip, click-through to project detail. Resource Gantt (per-employee) is out of scope for v1 per spec §4.7.
-- [ ] **Phase 5 — Exports** (Excel via ExcelJS, PDF via Puppeteer).
+- [x] **Phase 5 — Exports**: `GET /api/export/:report.:format` (xlsx via ExcelJS — frozen header, column formats, totals row, title/meta block; pdf via Puppeteer — print-styled HTML template with the Jeen logo) for all six reports plus the Gantt. Excel/PDF buttons on every report page and the Gantt page trigger real downloads.
 - [ ] **Phase 6 — Polish & Ops** (virtualization, hardening, docs).
 
 ## Deployment (Oracle Ubuntu host: nginx + pm2 + Postgres)
 
+`deploy/bootstrap.sh` automates all of the below (Node, Postgres, nginx, certbot, pm2, and the Chromium system libs Puppeteer needs for PDF export) — see the script header for usage. The manual steps it replaces:
+
 1. Provision PostgreSQL locally on the host, create a dedicated DB + user, set `DATABASE_URL`.
-2. Puppeteer (Phase 5) needs Chromium system libs on Ubuntu:
+2. Puppeteer (used for PDF export) needs Chromium system libs on Ubuntu 24.04 (package names shifted to the `t64` suffix on this release):
    ```bash
-   sudo apt-get install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 \
-     libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0
+   sudo apt-get install -y libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0 \
+     libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 libpango-1.0-0
    ```
 3. Copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, symlink into `sites-enabled`, obtain a TLS cert with `certbot --nginx -d planner.raviv360.com`.
 4. Copy `deploy/ecosystem.config.js`, run `pm2 start deploy/ecosystem.config.js`, then `pm2 save && pm2 startup`.

@@ -44,7 +44,9 @@ echo "==> Installing system packages"
 export DEBIAN_FRONTEND=noninteractive
 sudo -E apt-get update -y
 sudo -E apt-get install -y -o Dpkg::Options::="--force-confdef" curl git nginx postgresql postgresql-contrib \
-  certbot python3-certbot-nginx build-essential
+  certbot python3-certbot-nginx build-essential \
+  libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0 \
+  libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 libpango-1.0-0
 
 if ! command -v node >/dev/null || [[ "$(node -v)" != v20.* && "$(node -v)" != v22.* ]]; then
   echo "==> Installing Node.js 20.x"

@@ -43,7 +43,10 @@ export function ProjectBurnReport() {
             <option value="cancelled">Cancelled</option>
           </Select>
         </div>
-        <ExportButton />
+        <ExportButton
+          report="project-burn"
+          params={{ customerId: customerId || undefined, status: status || undefined }}
+        />
       </div>
       <Card>
         <table className="w-full text-sm">

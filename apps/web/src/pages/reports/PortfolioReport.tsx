@@ -24,7 +24,7 @@ export function PortfolioReport() {
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <ExportButton />
+        <ExportButton report="portfolio" />
       </div>
       <Card>
         <table className="w-full text-sm">

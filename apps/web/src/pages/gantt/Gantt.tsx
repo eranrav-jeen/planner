@@ -108,7 +108,7 @@ export function GanttPage() {
 
   return (
     <div>
-      <PageHeader title="Gantt" actions={<ExportButton />} />
+      <PageHeader title="Gantt" actions={<ExportButton report="gantt" params={{ customerId: customerId || undefined }} />} />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Select className="w-56" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>

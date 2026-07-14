@@ -54,7 +54,7 @@ export function ForecastReport() {
           onChangeSize={setWindowSize}
           language={language}
         />
-        <ExportButton />
+        <ExportButton report="forecast" params={{ from: windowStart, to }} />
       </div>
 
       <Card className="mb-4">

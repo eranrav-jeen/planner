@@ -45,7 +45,7 @@ export function UtilizationReport() {
             ))}
           </Select>
         </div>
-        <ExportButton />
+        <ExportButton report="utilization" params={{ from: windowStart, to, employeeId: employeeId || undefined }} />
       </div>
       <Card>
         <table className="w-full text-sm">
