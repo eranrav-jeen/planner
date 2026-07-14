@@ -13,6 +13,7 @@ import { ProjectsList } from './pages/projects/ProjectsList';
 import { ProjectDetail } from './pages/projects/ProjectDetail';
 import { Planning } from './pages/planning/Planning';
 import { Reports } from './pages/reports/Reports';
+import { GanttPage } from './pages/gantt/Gantt';
 
 export default function App() {
   const { t } = useLanguage();
@@ -37,7 +38,7 @@ export default function App() {
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="planning" element={<Planning />} />
         <Route path="reports" element={<Reports />} />
-        <Route path="gantt" element={<ComingSoon title={t('nav.gantt')} phase="Phase 4" />} />
+        <Route path="gantt" element={<GanttPage />} />
         <Route path="settings" element={<ComingSoon title={t('nav.settings')} phase="Phase 6" />} />
       </Route>
     </Routes>

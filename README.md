@@ -39,7 +39,7 @@ See `.env.example`. Notable ones:
 - [x] **Phase 1 — Core CRUD**: Customers, Employees, Projects (API + list/detail/forms), project team assignments.
 - [x] **Phase 2 — Monthly Planning**: allocations API (range query, bulk upsert, copy-forward), capacity overrides API, planning grid UI (by-employee and by-project pivots, inline edit, utilization heatmap colors, month window controls, copy-forward).
 - [x] **Phase 3 — Reports & Dashboard**: six report services (utilization, demand/capacity, project burn, profitability, customer portfolio, revenue forecast) + filterable/sortable report pages, and a dashboard with live cards, at-risk list, revenue chart, and team utilization heatmap.
-- [ ] **Phase 4 — Gantt**.
+- [x] **Phase 4 — Gantt**: `GET /api/gantt/projects` + a project Gantt at `/gantt` (`gantt-task-react`) grouped by customer (collapsible), colored by status, progress fill from hours consumed, week/month/quarter zoom, hover tooltip, click-through to project detail. Resource Gantt (per-employee) is out of scope for v1 per spec §4.7.
 - [ ] **Phase 5 — Exports** (Excel via ExcelJS, PDF via Puppeteer).
 - [ ] **Phase 6 — Polish & Ops** (virtualization, hardening, docs).
 
@@ -61,3 +61,4 @@ See `.env.example`. Notable ones:
 - Default currency is ILS; per-project currency field exists but multi-currency reporting isn't built.
 - `cost_rate_hourly` / profitability figures are hidden from the `VIEWER` role.
 - RTL (Hebrew) is the default locale; toggle to English from the top bar. UI strings are centralized in `apps/web/src/lib/i18n.tsx`.
+- The Gantt chart itself always renders left-to-right (a `dir="ltr"` wrapper) regardless of app language — `gantt-task-react`'s own `rtl` mode has a bug that throws on render, and timelines conventionally stay LTR even in RTL apps. Its "Quarter" zoom maps to the library's `Year` view mode, the coarsest one it offers (it has no native quarter granularity).
