@@ -137,6 +137,24 @@ projectsRouter.post(
 export const assignmentsRouter = Router();
 assignmentsRouter.use(requireAuth);
 
+assignmentsRouter.get(
+  '/',
+  asyncHandler(async (req, res) => {
+    const { employeeId, projectId } = req.query as { employeeId?: string; projectId?: string };
+    const assignments = await prisma.projectAssignment.findMany({
+      where: {
+        ...(employeeId ? { employeeId } : {}),
+        ...(projectId ? { projectId } : {}),
+      },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true, monthlyCapacityHours: true } },
+        project: { select: { id: true, name: true, code: true, status: true } },
+      },
+    });
+    res.json({ data: serializeDecimals(assignments) });
+  }),
+);
+
 assignmentsRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),

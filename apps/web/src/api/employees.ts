@@ -5,6 +5,7 @@ import type { Employee, Paginated } from './types';
 export interface EmployeeFilters extends Record<string, string | undefined> {
   search?: string;
   department?: string;
+  isActive?: string;
 }
 
 function toQueryString(params: Record<string, string | undefined>) {
