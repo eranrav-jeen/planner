@@ -16,3 +16,18 @@ export function firstOfMonth(date: Date): Date {
 export function addMonths(date: Date, count: number): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + count, 1));
 }
+
+export function monthKey(date: Date): string {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function monthsBetween(from: Date, to: Date): Date[] {
+  const months: Date[] = [];
+  let cursor = firstOfMonth(from);
+  const end = firstOfMonth(to);
+  while (cursor.getTime() <= end.getTime()) {
+    months.push(cursor);
+    cursor = addMonths(cursor, 1);
+  }
+  return months;
+}

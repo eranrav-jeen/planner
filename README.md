@@ -38,7 +38,7 @@ See `.env.example`. Notable ones:
 - [x] **Phase 0 — Foundation**: monorepo, Prisma schema + seed, Express skeleton, JWT auth + roles, React shell (sidebar/topbar, RTL-ready i18n, login), deploy skeleton.
 - [x] **Phase 1 — Core CRUD**: Customers, Employees, Projects (API + list/detail/forms), project team assignments.
 - [x] **Phase 2 — Monthly Planning**: allocations API (range query, bulk upsert, copy-forward), capacity overrides API, planning grid UI (by-employee and by-project pivots, inline edit, utilization heatmap colors, month window controls, copy-forward).
-- [ ] **Phase 3 — Reports & Dashboard**: report services + pages, dashboard charts.
+- [x] **Phase 3 — Reports & Dashboard**: six report services (utilization, demand/capacity, project burn, profitability, customer portfolio, revenue forecast) + filterable/sortable report pages, and a dashboard with live cards, at-risk list, revenue chart, and team utilization heatmap.
 - [ ] **Phase 4 — Gantt**.
 - [ ] **Phase 5 — Exports** (Excel via ExcelJS, PDF via Puppeteer).
 - [ ] **Phase 6 — Polish & Ops** (virtualization, hardening, docs).
