@@ -11,14 +11,17 @@
 #   JWT_SECRET        random secret for signing session JWTs
 #   ADMIN_EMAIL       bootstrap admin login email
 #   ADMIN_PASSWORD    bootstrap admin login password
-#   GITHUB_DEPLOY_KEY_PATH   path to the private half of the GitHub deploy key
-#                            (see the companion instructions for how this gets here)
+#
+# The GitHub deploy key (for `git clone`/`git pull` access to this private repo)
+# is generated locally on THIS machine the first time you run the script — its
+# private half never needs to leave the server. The script will print a public
+# key and pause; add that as a read-only Deploy Key in the GitHub repo's
+# Settings -> Deploy keys, then re-run this script to continue.
 #
 # Example:
 #   export DOMAIN=planner.raviv360.com CERTBOT_EMAIL=you@example.com \
 #          GIT_BRANCH=claude/new-session-6k49hf DB_PASSWORD=... JWT_SECRET=... \
-#          ADMIN_EMAIL=admin@jeen.ai ADMIN_PASSWORD=... \
-#          GITHUB_DEPLOY_KEY_PATH=~/.ssh/jeen_planner_github_deploy
+#          ADMIN_EMAIL=admin@jeen.ai ADMIN_PASSWORD=...
 #   bash bootstrap.sh
 
 set -euo pipefail
@@ -30,12 +33,12 @@ set -euo pipefail
 : "${JWT_SECRET:?Set JWT_SECRET}"
 : "${ADMIN_EMAIL:?Set ADMIN_EMAIL}"
 : "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}"
-: "${GITHUB_DEPLOY_KEY_PATH:?Set GITHUB_DEPLOY_KEY_PATH}"
 
 REPO_SSH_URL="git@github.com:eranrav-jeen/planner.git"
 APP_DIR="/var/www/jeen-project-planner"
 DB_NAME="jeen_planner"
 DB_USER="jeen_planner"
+GH_KEY_PATH=~/.ssh/jeen_planner_github_deploy
 
 echo "==> Installing system packages"
 sudo apt-get update -y
@@ -55,9 +58,11 @@ fi
 
 echo "==> Configuring SSH access to GitHub (deploy key)"
 mkdir -p ~/.ssh
-GH_KEY_DEST=~/.ssh/jeen_planner_github_deploy
-cp "$GITHUB_DEPLOY_KEY_PATH" "$GH_KEY_DEST"
-chmod 600 "$GH_KEY_DEST"
+chmod 700 ~/.ssh
+if [ ! -f "$GH_KEY_PATH" ]; then
+  ssh-keygen -t ed25519 -f "$GH_KEY_PATH" -N "" -C "jeen-planner-server-$(hostname)"
+fi
+chmod 600 "$GH_KEY_PATH"
 ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null || true
 if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
   cat >> ~/.ssh/config <<EOF
@@ -65,9 +70,21 @@ if ! grep -q "Host github.com" ~/.ssh/config 2>/dev/null; then
 Host github.com
   HostName github.com
   User git
-  IdentityFile $GH_KEY_DEST
+  IdentityFile $GH_KEY_PATH
   IdentitiesOnly yes
 EOF
+  chmod 600 ~/.ssh/config
+fi
+
+if ! ssh -T git@github.com -o BatchMode=yes -o StrictHostKeyChecking=accept-new 2>&1 | grep -q "successfully authenticated"; then
+  echo ""
+  echo "=================================================="
+  echo "Add this deploy key to the GitHub repo (read-only is fine),"
+  echo "then re-run this script: Settings -> Deploy keys -> Add deploy key"
+  echo "--------------------------------------------------"
+  cat "${GH_KEY_PATH}.pub"
+  echo "=================================================="
+  exit 1
 fi
 
 echo "==> Cloning or updating the app"
