@@ -57,7 +57,24 @@ See `.env.example`. Notable ones:
 3. Copy `deploy/nginx.conf.example` to `/etc/nginx/sites-available/`, adjust, symlink into `sites-enabled`, obtain a TLS cert with `certbot --nginx -d planner.raviv360.com`.
 4. Copy `deploy/ecosystem.config.js`, run `pm2 start deploy/ecosystem.config.js`, then `pm2 save && pm2 startup`.
 5. Add `deploy/backup.sh` to root's crontab for nightly `pg_dump` backups (14-day retention by default).
-6. CI/CD: `.github/workflows/deploy.yml` runs on push to `main` — installs, typechecks, builds, runs `prisma migrate deploy`, then deploys over SSH and reloads pm2. Configure these repo secrets: `DATABASE_URL`, `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`.
+6. CI/CD: `.github/workflows/deploy.yml` runs on push to `main` — installs, typechecks, builds, runs `prisma migrate deploy`, then deploys over SSH and reloads pm2. Configure these repo secrets: `DATABASE_URL`, `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`. Until those secrets are set, redeploy manually on the server instead (see below).
+
+### Redeploying manually
+
+For routine code changes (no new dependencies), run `bash deploy/redeploy.sh` on the server — it fetches `main`, and skips `npm ci`/`npm run build` when the diff since the last deploy shows no `package-lock.json`/`apps/`/`prisma/` changes, which is the common case and saves the ~2 minutes `npm ci` otherwise costs. It still always runs `prisma migrate deploy` (a fast no-op when there's nothing pending) and `pm2 reload`. Pass a branch name as an argument to deploy something other than `main`.
+
+If you'd rather do it by hand, or `redeploy.sh` isn't present yet on the server, the equivalent full sequence is:
+```bash
+cd /var/www/jeen-project-planner
+git fetch origin main
+git reset --hard origin/main
+npm ci
+set -a; source apps/api/.env; set +a
+npx prisma migrate deploy
+npm run build
+pm2 reload deploy/ecosystem.config.js
+```
+The `source apps/api/.env` step matters — `DATABASE_URL` lives there, not at the repo root, so `prisma migrate deploy` can't find it without that line.
 
 ## Notes
 
