@@ -7,7 +7,13 @@ export interface AssignmentRow {
   projectId: string;
   roleOnProject?: string | null;
   employee: { id: string; firstName: string; lastName: string; monthlyCapacityHours: number };
-  project: { id: string; name: string; code: string; status: string };
+  project: {
+    id: string;
+    name: string;
+    code: string;
+    status: string;
+    customer: { id: string; name: string };
+  };
 }
 
 export function useAssignments(filters: { employeeId?: string; projectId?: string } = {}) {

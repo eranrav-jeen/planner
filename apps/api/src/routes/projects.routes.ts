@@ -153,7 +153,15 @@ assignmentsRouter.get(
       },
       include: {
         employee: { select: { id: true, firstName: true, lastName: true, monthlyCapacityHours: true } },
-        project: { select: { id: true, name: true, code: true, status: true } },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            status: true,
+            customer: { select: { id: true, name: true } },
+          },
+        },
       },
     });
     res.json({ data: serializeDecimals(assignments) });

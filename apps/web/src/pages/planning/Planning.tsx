@@ -15,6 +15,7 @@ import { addMonthsToKey, currentMonthKey, monthRange, monthShortLabel } from '..
 import { cellKey, type InputMode } from './gridUtils';
 import { EmployeePivot } from './EmployeePivot';
 import { ProjectPivot } from './ProjectPivot';
+import { CustomerPivot } from './CustomerPivot';
 import { ErrorState } from '../../components/ui/error-state';
 import { cn } from '../../lib/utils';
 
@@ -25,7 +26,7 @@ export function Planning() {
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
-  const [pivot, setPivot] = useState<'employee' | 'project'>('employee');
+  const [pivot, setPivot] = useState<'employee' | 'project' | 'customer'>('employee');
   const [inputMode, setInputMode] = useState<InputMode>('hours');
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(DEFAULT_WINDOW_SIZE);
@@ -125,6 +126,16 @@ export function Planning() {
           >
             By project
           </button>
+          <button
+            type="button"
+            onClick={() => setPivot('customer')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-sm font-medium',
+              pivot === 'customer' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
+            )}
+          >
+            By customer
+          </button>
         </div>
 
         <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
@@ -212,6 +223,17 @@ export function Planning() {
             onChange={handleChange}
             language={language}
             canEdit={canEdit}
+            inputMode={inputMode}
+          />
+        ) : pivot === 'customer' ? (
+          <CustomerPivot
+            employees={employees}
+            months={months}
+            assignments={allAssignments}
+            allocations={allocations}
+            overrides={overrides}
+            edited={edited}
+            language={language}
             inputMode={inputMode}
           />
         ) : (
