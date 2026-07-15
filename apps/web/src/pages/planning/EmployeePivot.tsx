@@ -4,7 +4,7 @@ import type { Employee } from '../../api/types';
 import type { MonthlyAllocation } from '../../api/allocations';
 import type { CapacityOverride } from '../../api/capacityOverrides';
 import type { AssignmentRow } from '../../api/assignments';
-import { cellKey, hoursToPercent, percentToHours, utilizationClass, type InputMode } from './gridUtils';
+import { cellKey, hoursToPercent, percentToHours, roundHours, utilizationClass, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
 import { cn } from '../../lib/utils';
 
@@ -61,7 +61,7 @@ export function EmployeePivot({
 
   function getValue(employeeId: string, projectId: string, monthKey: string): number {
     const key = cellKey(employeeId, projectId, monthKey);
-    return edited.get(key) ?? allocationMap.get(key) ?? 0;
+    return roundHours(edited.get(key) ?? allocationMap.get(key) ?? 0);
   }
 
   function capacityFor(employee: Employee, monthKey: string): number {
@@ -78,13 +78,15 @@ export function EmployeePivot({
   }
 
   const teamCapacityByMonth = months.map((m) =>
-    employees.reduce((sum, e) => sum + capacityFor(e, m), 0),
+    roundHours(employees.reduce((sum, e) => sum + capacityFor(e, m), 0)),
   );
   const teamPlannedByMonth = months.map((m) =>
-    employees.reduce((sum, e) => {
-      const projects = assignmentsByEmployee.get(e.id) ?? [];
-      return sum + projects.reduce((s, p) => s + getValue(e.id, p.projectId, m), 0);
-    }, 0),
+    roundHours(
+      employees.reduce((sum, e) => {
+        const projects = assignmentsByEmployee.get(e.id) ?? [];
+        return sum + projects.reduce((s, p) => s + getValue(e.id, p.projectId, m), 0);
+      }, 0),
+    ),
   );
 
   return (
@@ -117,7 +119,9 @@ export function EmployeePivot({
                   </span>
                 </td>
                 {months.map((m) => {
-                  const total = projects.reduce((sum, p) => sum + getValue(employee.id, p.projectId, m), 0);
+                  const total = roundHours(
+                    projects.reduce((sum, p) => sum + getValue(employee.id, p.projectId, m), 0),
+                  );
                   const capacity = capacityFor(employee, m);
                   const ratio = capacity > 0 ? total / capacity : total > 0 ? 2 : 0;
                   return (

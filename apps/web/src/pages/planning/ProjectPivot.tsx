@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { AssignmentRow } from '../../api/assignments';
 import type { MonthlyAllocation } from '../../api/allocations';
 import type { CapacityOverride } from '../../api/capacityOverrides';
-import { cellKey, hoursToPercent, percentToHours, type InputMode } from './gridUtils';
+import { cellKey, hoursToPercent, percentToHours, roundHours, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
 
 export function ProjectPivot({
@@ -46,14 +46,16 @@ export function ProjectPivot({
 
   function getValue(employeeId: string, monthKey: string): number {
     const key = cellKey(employeeId, projectId, monthKey);
-    return edited.get(key) ?? allocationMap.get(key) ?? 0;
+    return roundHours(edited.get(key) ?? allocationMap.get(key) ?? 0);
   }
 
   function capacityFor(assignment: AssignmentRow, monthKey: string): number {
     return overrideMap.get(`${assignment.employeeId}|${monthKey}`) ?? assignment.employee.monthlyCapacityHours;
   }
 
-  const totalsByMonth = months.map((m) => assignments.reduce((sum, a) => sum + getValue(a.employeeId, m), 0));
+  const totalsByMonth = months.map((m) =>
+    roundHours(assignments.reduce((sum, a) => sum + getValue(a.employeeId, m), 0)),
+  );
 
   return (
     <table className="w-full text-sm">
