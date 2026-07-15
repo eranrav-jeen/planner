@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { AssignmentRow } from '../../api/assignments';
 import type { MonthlyAllocation } from '../../api/allocations';
-import { cellKey } from './gridUtils';
+import type { CapacityOverride } from '../../api/capacityOverrides';
+import { cellKey, hoursToPercent, percentToHours, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
 
 export function ProjectPivot({
@@ -9,19 +10,23 @@ export function ProjectPivot({
   assignments,
   months,
   allocations,
+  overrides,
   edited,
   onChange,
   language,
   canEdit,
+  inputMode,
 }: {
   projectId: string;
   assignments: AssignmentRow[];
   months: string[];
   allocations: MonthlyAllocation[];
+  overrides: CapacityOverride[];
   edited: Map<string, number>;
   onChange: (employeeId: string, projectId: string, monthKey: string, value: number) => void;
   language: 'he' | 'en';
   canEdit: boolean;
+  inputMode: InputMode;
 }) {
   const allocationMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -31,9 +36,21 @@ export function ProjectPivot({
     return map;
   }, [allocations]);
 
+  const overrideMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const o of overrides) {
+      map.set(`${o.employeeId}|${o.month.slice(0, 7)}`, Number(o.capacityHours));
+    }
+    return map;
+  }, [overrides]);
+
   function getValue(employeeId: string, monthKey: string): number {
     const key = cellKey(employeeId, projectId, monthKey);
     return edited.get(key) ?? allocationMap.get(key) ?? 0;
+  }
+
+  function capacityFor(assignment: AssignmentRow, monthKey: string): number {
+    return overrideMap.get(`${assignment.employeeId}|${monthKey}`) ?? assignment.employee.monthlyCapacityHours;
   }
 
   const totalsByMonth = months.map((m) => assignments.reduce((sum, a) => sum + getValue(a.employeeId, m), 0));
@@ -64,21 +81,34 @@ export function ProjectPivot({
               {a.employee.firstName} {a.employee.lastName}
               {a.roleOnProject && <span className="ms-1.5 text-xs text-muted">({a.roleOnProject})</span>}
             </td>
-            {months.map((m) => (
-              <td key={m} className="px-1 py-1 text-center">
-                {canEdit ? (
-                  <input
-                    type="number"
-                    min={0}
-                    className="w-16 rounded-md border border-transparent bg-transparent px-1 py-1 text-center tabular-nums outline-none hover:border-border focus:border-charcoal focus:bg-surface"
-                    value={getValue(a.employeeId, m)}
-                    onChange={(e) => onChange(a.employeeId, projectId, m, Number(e.target.value))}
-                  />
-                ) : (
-                  <span className="tabular-nums">{getValue(a.employeeId, m)}</span>
-                )}
-              </td>
-            ))}
+            {months.map((m) => {
+              const hours = getValue(a.employeeId, m);
+              const capacity = capacityFor(a, m);
+              const displayValue =
+                inputMode === 'percent' ? Math.round(hoursToPercent(hours, capacity) * 10) / 10 : hours;
+              return (
+                <td key={m} className="px-1 py-1 text-center">
+                  {canEdit ? (
+                    <input
+                      type="number"
+                      min={0}
+                      className="w-16 rounded-md border border-transparent bg-transparent px-1 py-1 text-center tabular-nums outline-none hover:border-border focus:border-charcoal focus:bg-surface"
+                      value={displayValue}
+                      onChange={(e) => {
+                        const raw = Number(e.target.value);
+                        const newHours = inputMode === 'percent' ? percentToHours(raw, capacity) : raw;
+                        onChange(a.employeeId, projectId, m, newHours);
+                      }}
+                    />
+                  ) : (
+                    <span className="tabular-nums">
+                      {displayValue}
+                      {inputMode === 'percent' ? '%' : 'h'}
+                    </span>
+                  )}
+                </td>
+              );
+            })}
           </tr>
         ))}
       </tbody>

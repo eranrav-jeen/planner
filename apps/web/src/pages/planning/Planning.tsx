@@ -12,7 +12,7 @@ import { useCapacityOverrides } from '../../api/capacityOverrides';
 import { useLanguage } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth';
 import { addMonthsToKey, currentMonthKey, monthRange, monthShortLabel } from '../../lib/months';
-import { cellKey } from './gridUtils';
+import { cellKey, type InputMode } from './gridUtils';
 import { EmployeePivot } from './EmployeePivot';
 import { ProjectPivot } from './ProjectPivot';
 import { ErrorState } from '../../components/ui/error-state';
@@ -26,6 +26,7 @@ export function Planning() {
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const [pivot, setPivot] = useState<'employee' | 'project'>('employee');
+  const [inputMode, setInputMode] = useState<InputMode>('hours');
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(DEFAULT_WINDOW_SIZE);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -126,6 +127,29 @@ export function Planning() {
           </button>
         </div>
 
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
+          <button
+            type="button"
+            onClick={() => setInputMode('hours')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-sm font-medium',
+              inputMode === 'hours' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
+            )}
+          >
+            Hours
+          </button>
+          <button
+            type="button"
+            onClick={() => setInputMode('percent')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-sm font-medium',
+              inputMode === 'percent' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
+            )}
+          >
+            %
+          </button>
+        </div>
+
         <div className="flex flex-wrap items-end gap-3">
           {pivot === 'project' && (
             <Select
@@ -188,6 +212,7 @@ export function Planning() {
             onChange={handleChange}
             language={language}
             canEdit={canEdit}
+            inputMode={inputMode}
           />
         ) : (
           <ProjectPivot
@@ -195,10 +220,12 @@ export function Planning() {
             assignments={allAssignments}
             months={months}
             allocations={allocations}
+            overrides={overrides}
             edited={edited}
             onChange={handleChange}
             language={language}
             canEdit={canEdit}
+            inputMode={inputMode}
           />
         )}
       </Card>
