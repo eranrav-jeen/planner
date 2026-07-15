@@ -8,14 +8,17 @@ export type ExportableReport =
   | 'profitability'
   | 'portfolio'
   | 'forecast'
-  | 'gantt';
+  | 'gantt'
+  | 'planning';
 
 export function ExportButton({
   report,
   params = {},
+  formats = ['xlsx', 'pdf'],
 }: {
   report: ExportableReport;
   params?: Record<string, string | undefined>;
+  formats?: Array<'xlsx' | 'pdf'>;
 }) {
   function download(format: 'xlsx' | 'pdf') {
     const qs = new URLSearchParams();
@@ -28,12 +31,16 @@ export function ExportButton({
 
   return (
     <div className="flex gap-2">
-      <Button variant="secondary" size="sm" onClick={() => download('xlsx')}>
-        <Download className="h-3.5 w-3.5" /> Excel
-      </Button>
-      <Button variant="secondary" size="sm" onClick={() => download('pdf')}>
-        <Download className="h-3.5 w-3.5" /> PDF
-      </Button>
+      {formats.includes('xlsx') && (
+        <Button variant="secondary" size="sm" onClick={() => download('xlsx')}>
+          <Download className="h-3.5 w-3.5" /> Excel
+        </Button>
+      )}
+      {formats.includes('pdf') && (
+        <Button variant="secondary" size="sm" onClick={() => download('pdf')}>
+          <Download className="h-3.5 w-3.5" /> PDF
+        </Button>
+      )}
     </div>
   );
 }

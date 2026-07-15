@@ -17,6 +17,7 @@ import { EmployeePivot } from './EmployeePivot';
 import { ProjectPivot } from './ProjectPivot';
 import { CustomerPivot } from './CustomerPivot';
 import { ErrorState } from '../../components/ui/error-state';
+import { ExportButton } from '../reports/ExportButton';
 import { cn } from '../../lib/utils';
 
 const DEFAULT_WINDOW_SIZE = 7;
@@ -96,11 +97,23 @@ export function Planning() {
       <PageHeader
         title="Planning"
         actions={
-          canEdit && (
-            <Button onClick={handleSave} disabled={edited.size === 0 || bulkUpsert.isPending}>
-              <Save className="h-4 w-4" /> Save {edited.size > 0 && `(${edited.size})`}
-            </Button>
-          )
+          <div className="flex items-center gap-2">
+            <ExportButton
+              report="planning"
+              formats={['xlsx']}
+              params={{
+                from,
+                to,
+                pivot,
+                projectId: pivot === 'project' ? selectedProjectId : undefined,
+              }}
+            />
+            {canEdit && (
+              <Button onClick={handleSave} disabled={edited.size === 0 || bulkUpsert.isPending}>
+                <Save className="h-4 w-4" /> Save {edited.size > 0 && `(${edited.size})`}
+              </Button>
+            )}
+          </div>
         }
       />
 

@@ -7,7 +7,13 @@ import { getPortfolioReport } from './portfolio.service.js';
 import { getForecastReport } from './forecast.service.js';
 import { getGanttProjects } from './gantt.service.js';
 import { ApiError } from '../middleware/error.js';
+import { prisma } from '../lib/prisma.js';
+import { monthKey, monthsBetween, parseMonthParam } from '../lib/month.js';
 import type { Role } from '@prisma/client';
+
+function roundHours(hours: number): number {
+  return Math.round(hours * 100) / 100;
+}
 
 export interface ExportDefinition {
   meta: ExportMeta;
@@ -24,6 +30,7 @@ export const EXPORTABLE_REPORTS = [
   'portfolio',
   'forecast',
   'gantt',
+  'planning',
 ] as const;
 export type ExportableReport = (typeof EXPORTABLE_REPORTS)[number];
 
@@ -217,6 +224,140 @@ export async function buildExportDefinition(
           { header: '% complete', key: 'percentComplete', width: 12, format: 'percent' },
         ],
         rows: rows as unknown as Record<string, unknown>[],
+      };
+    }
+
+    case 'planning': {
+      const from = requireParam(query, 'from');
+      const to = requireParam(query, 'to');
+      const pivot = query.pivot === 'project' || query.pivot === 'customer' ? query.pivot : 'employee';
+      const projectIdFilter = pivot === 'project' ? query.projectId : undefined;
+      if (pivot === 'project' && !projectIdFilter) {
+        throw new ApiError(422, 'Missing required query param: projectId');
+      }
+
+      const fromDate = parseMonthParam(from);
+      const toDate = parseMonthParam(to);
+      const months = monthsBetween(fromDate, toDate);
+      const monthKeys = months.map(monthKey);
+      const monthHeader = (d: Date) => new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(d);
+
+      const [assignments, allocations] = await Promise.all([
+        prisma.projectAssignment.findMany({
+          where: projectIdFilter ? { projectId: projectIdFilter } : {},
+          include: { employee: true, project: { include: { customer: true } } },
+        }),
+        prisma.monthlyAllocation.findMany({
+          where: {
+            month: { gte: fromDate, lte: toDate },
+            ...(projectIdFilter ? { projectId: projectIdFilter } : {}),
+          },
+        }),
+      ]);
+
+      const allocationMap = new Map<string, number>();
+      for (const a of allocations) {
+        allocationMap.set(`${a.employeeId}|${a.projectId}|${monthKey(a.month)}`, Number(a.plannedHours));
+      }
+      const getValue = (employeeId: string, projectId: string, mKey: string) =>
+        allocationMap.get(`${employeeId}|${projectId}|${mKey}`) ?? 0;
+
+      const monthColumns: ExportColumn[] = monthKeys.map((mk, i) => ({
+        header: monthHeader(months[i]),
+        key: mk,
+        width: 12,
+        format: 'hours',
+      }));
+
+      function buildTotalsRow(
+        rows: Record<string, unknown>[],
+        labelColumns: Record<string, string>,
+      ): Record<string, unknown> {
+        const monthTotals: Record<string, number> = {};
+        for (const mk of monthKeys) {
+          monthTotals[mk] = roundHours(rows.reduce((sum, r) => sum + ((r[mk] as number) ?? 0), 0));
+        }
+        const grandTotal = roundHours(rows.reduce((sum, r) => sum + ((r.total as number) ?? 0), 0));
+        return { ...labelColumns, ...monthTotals, total: grandTotal };
+      }
+
+      if (pivot === 'customer') {
+        const groups = new Map<
+          string,
+          { employeeName: string; customerName: string; employeeId: string; projectIds: string[] }
+        >();
+        for (const a of assignments) {
+          const key = `${a.employeeId}|${a.project.customer.id}`;
+          const group = groups.get(key) ?? {
+            employeeName: `${a.employee.firstName} ${a.employee.lastName}`,
+            customerName: a.project.customer.name,
+            employeeId: a.employeeId,
+            projectIds: [],
+          };
+          group.projectIds.push(a.projectId);
+          groups.set(key, group);
+        }
+
+        const rows: Record<string, unknown>[] = Array.from(groups.values()).map((group) => {
+          const row: Record<string, unknown> = { employeeName: group.employeeName, customerName: group.customerName };
+          let total = 0;
+          for (const mk of monthKeys) {
+            const value = roundHours(group.projectIds.reduce((sum, pid) => sum + getValue(group.employeeId, pid, mk), 0));
+            row[mk] = value;
+            total += value;
+          }
+          row.total = roundHours(total);
+          return row;
+        });
+
+        return {
+          meta: { title: 'Planning (by customer)', generatedAt, filters: { from, to } },
+          columns: [
+            { header: 'Employee', key: 'employeeName', width: 24 },
+            { header: 'Customer', key: 'customerName', width: 22 },
+            ...monthColumns,
+            { header: 'Total', key: 'total', width: 12, format: 'hours' },
+          ],
+          rows,
+          totals: buildTotalsRow(rows, { employeeName: 'Total', customerName: '' }),
+        };
+      }
+
+      const rows: Record<string, unknown>[] = assignments.map((a) => {
+        const row: Record<string, unknown> = {
+          employeeName: `${a.employee.firstName} ${a.employee.lastName}`,
+          projectName: `${a.project.name} (${a.project.code})`,
+          customerName: a.project.customer.name,
+        };
+        let total = 0;
+        for (const mk of monthKeys) {
+          const value = getValue(a.employeeId, a.projectId, mk);
+          row[mk] = value;
+          total += value;
+        }
+        row.total = roundHours(total);
+        return row;
+      });
+
+      return {
+        meta: {
+          title: pivot === 'project' ? 'Planning (by project)' : 'Planning (by employee)',
+          generatedAt,
+          filters: { from, to, projectId: projectIdFilter },
+        },
+        columns: [
+          { header: 'Employee', key: 'employeeName', width: 24 },
+          ...(pivot === 'project' ? [] : [{ header: 'Project', key: 'projectName', width: 26 } as ExportColumn]),
+          { header: 'Customer', key: 'customerName', width: 22 },
+          ...monthColumns,
+          { header: 'Total', key: 'total', width: 12, format: 'hours' },
+        ],
+        rows,
+        totals: buildTotalsRow(rows, {
+          employeeName: 'Total',
+          ...(pivot === 'project' ? {} : { projectName: '' }),
+          customerName: '',
+        }),
       };
     }
 
