@@ -112,6 +112,11 @@ model Project {
   currency      String        @default("ILS")
   billingType   BillingType   @default(time_and_materials) @map("billing_type")
   description   String?
+  poFileName    String?       @map("po_file_name")
+  poStoredName  String?       @map("po_stored_name")
+  poMimeType    String?       @map("po_mime_type")
+  poFileSize    Int?          @map("po_file_size")
+  poUploadedAt  DateTime?     @map("po_uploaded_at")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 

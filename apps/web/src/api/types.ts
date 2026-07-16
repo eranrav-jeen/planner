@@ -49,6 +49,10 @@ export interface Project {
   currency: string;
   billingType: BillingType;
   description?: string | null;
+  poFileName?: string | null;
+  poMimeType?: string | null;
+  poFileSize?: number | null;
+  poUploadedAt?: string | null;
   assignments?: (ProjectAssignment & { employee: Employee })[];
   burn?: { hoursPaid: number; consumed: number; remaining: number };
 }

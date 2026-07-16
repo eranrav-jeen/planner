@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import multer from 'multer';
 
 export class ApiError extends Error {
   status: number;
@@ -27,6 +28,11 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
 
   if (err instanceof ApiError) {
     return res.status(err.status).json({ error: { message: err.message, fields: err.fields } });
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large (max 20MB).' : err.message;
+    return res.status(422).json({ error: { message } });
   }
 
   console.error(err);

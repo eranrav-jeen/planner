@@ -1,15 +1,18 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Download, FileText, Pencil, Trash2, Upload, UserPlus } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
   useAddAssignment,
   useDeleteProject,
+  useDeletePo,
   useProject,
   useRemoveAssignment,
   useUpdateProject,
+  useUploadPo,
 } from '../../api/projects';
 import { useEmployees } from '../../api/employees';
+import type { Project } from '../../api/types';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -19,7 +22,7 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ErrorState } from '../../components/ui/error-state';
 import { ProjectForm } from './ProjectForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
-import { formatCurrency, formatHours, formatPercent } from '../../lib/format';
+import { formatCurrency, formatFileSize, formatHours, formatPercent, useDateFormatter } from '../../lib/format';
 import { cn } from '../../lib/utils';
 
 function BurnBar({ consumed, hoursPaid }: { consumed: number; hoursPaid: number }) {
@@ -117,6 +120,86 @@ function TeamTab({ projectId }: { projectId: string }) {
   );
 }
 
+function PurchaseOrderCard({ project, canEdit }: { project: Project; canEdit: boolean }) {
+  const uploadPo = useUploadPo(project.id);
+  const deletePo = useDeletePo(project.id);
+  const formatDate = useDateFormatter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadError(null);
+    uploadPo.mutate(file, {
+      onError: (err) => setUploadError(err instanceof ApiRequestError ? err.message : 'Upload failed'),
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Purchase order</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {project.poFileName ? (
+          <>
+            <div className="flex items-start gap-2">
+              <FileText className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+              <div className="min-w-0">
+                <div className="truncate font-medium">{project.poFileName}</div>
+                <div className="text-xs text-muted">
+                  {project.poFileSize != null && formatFileSize(project.poFileSize)}
+                  {project.poUploadedAt && ` · uploaded ${formatDate(project.poUploadedAt)}`}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => (window.location.href = `/api/projects/${project.id}/po`)}
+              >
+                <Download className="h-3.5 w-3.5" /> Download
+              </Button>
+              {canEdit && (
+                <>
+                  <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-3.5 w-3.5" /> Replace
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => deletePo.mutate()}>
+                    <Trash2 className="h-3.5 w-3.5" /> Remove
+                  </Button>
+                </>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-muted">No purchase order attached.</p>
+            {canEdit && (
+              <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" /> Upload PO
+              </Button>
+            )}
+          </>
+        )}
+        {canEdit && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+            onChange={handleFileChange}
+          />
+        )}
+        {uploadError && <p className="text-xs text-coral">{uploadError}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -164,7 +247,7 @@ export function ProjectDetail() {
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Burn</CardTitle>
@@ -203,6 +286,7 @@ export function ProjectDetail() {
             {!canSeeMargin && <p className="text-xs text-muted">Cost & margin visible to Admin/Manager only.</p>}
           </CardContent>
         </Card>
+        <PurchaseOrderCard project={project} canEdit={canEdit} />
       </div>
 
       <Card>

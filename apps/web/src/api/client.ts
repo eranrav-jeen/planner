@@ -33,6 +33,17 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   return body.data as T;
 }
 
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'include', body: formData });
+  const body = (await res.json().catch(() => ({}))) as ApiEnvelope<T>;
+  if (!res.ok) {
+    throw new ApiRequestError(res.status, body.error?.message ?? 'Upload failed', body.error?.fields);
+  }
+  return body.data as T;
+}
+
 export const api = {
   get: <T>(path: string) => apiRequest<T>(path),
   post: <T>(path: string, payload?: unknown) =>

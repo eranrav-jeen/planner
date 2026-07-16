@@ -36,3 +36,9 @@ export function monthLabel(monthIso: string, language: 'he' | 'en'): string {
   const locale = language === 'he' ? 'he-IL' : 'en-US';
   return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short' }).format(new Date(monthIso));
 }
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

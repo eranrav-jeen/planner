@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from './client';
+import { api, apiUpload } from './client';
 import type { Paginated, Project, ProjectAssignment } from './types';
 
 export interface ProjectFilters extends Record<string, string | undefined> {
@@ -72,6 +72,22 @@ export function useRemoveAssignment(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (assignmentId: string) => api.delete<{ ok: true }>(`/assignments/${assignmentId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}
+
+export function useUploadPo(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => apiUpload<Project>(`/projects/${projectId}/po`, file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  });
+}
+
+export function useDeletePo(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<Project>(`/projects/${projectId}/po`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
   });
 }
