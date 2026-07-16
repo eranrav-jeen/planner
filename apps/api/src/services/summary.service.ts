@@ -1,7 +1,10 @@
 import { prisma } from '../lib/prisma.js';
 
+const LICENSE_EXPIRY_WARNING_DAYS = 30;
+
 export async function getDashboardSummary() {
   const projects = await prisma.project.findMany();
+  const licensedCustomers = await prisma.customer.findMany({ where: { hasLicense: true } });
   const sums = await prisma.monthlyAllocation.groupBy({
     by: ['projectId'],
     _sum: { plannedHours: true, actualHours: true },
@@ -35,11 +38,36 @@ export async function getDashboardSummary() {
     }
   }
 
+  const totalLicenseRevenue = licensedCustomers.reduce(
+    (sum, c) => sum + Number(c.licenseAnnualAmount ?? 0),
+    0,
+  );
+
+  const warningCutoff = new Date(now.getTime() + LICENSE_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000);
+  const licenseAttention: { customerId: string; customerName: string; reason: string }[] = [];
+  for (const c of licensedCustomers) {
+    if (!c.licensePaid) {
+      licenseAttention.push({ customerId: c.id, customerName: c.name, reason: 'Current license period not paid' });
+    } else if (c.licensePeriodEnd && c.licensePeriodEnd < now) {
+      licenseAttention.push({ customerId: c.id, customerName: c.name, reason: 'License period expired' });
+    } else if (c.licensePeriodEnd && c.licensePeriodEnd <= warningCutoff) {
+      const daysLeft = Math.ceil((c.licensePeriodEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      licenseAttention.push({
+        customerId: c.id,
+        customerName: c.name,
+        reason: `License expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+      });
+    }
+  }
+
   return {
     activeProjectCount: activeProjects.length,
     totalIncome,
     totalHoursPaid,
     totalHoursConsumed: totalConsumed,
     atRiskProjects: atRisk,
+    licensedCustomerCount: licensedCustomers.length,
+    totalLicenseRevenue,
+    licenseAttention,
   };
 }

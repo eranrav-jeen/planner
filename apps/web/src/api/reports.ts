@@ -127,6 +127,9 @@ export interface DashboardSummary {
   totalHoursPaid: number;
   totalHoursConsumed: number;
   atRiskProjects: { projectId: string; projectName: string; projectCode: string; reason: string }[];
+  licensedCustomerCount: number;
+  totalLicenseRevenue: number;
+  licenseAttention: { customerId: string; customerName: string; reason: string }[];
 }
 
 export function useDashboardSummary() {

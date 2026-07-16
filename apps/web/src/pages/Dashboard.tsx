@@ -1,4 +1,5 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BadgeAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '../lib/i18n';
 import { PageHeader } from '../components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -38,7 +39,7 @@ export function Dashboard() {
   return (
     <div>
       <PageHeader title={t('nav.dashboard')} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader>
             <CardTitle>Active projects</CardTitle>
@@ -78,6 +79,23 @@ export function Dashboard() {
             {summary?.atRiskProjects.length ?? '—'}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Licensed customers</CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold tabular-nums">
+            {summary ? (
+              <>
+                {summary.licensedCustomerCount}{' '}
+                <span className="text-base font-normal text-muted">
+                  / {formatCurrency(summary.totalLicenseRevenue)}/yr
+                </span>
+              </>
+            ) : (
+              '—'
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -115,6 +133,31 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Licenses needing attention</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!summary || summary.licenseAttention.length === 0 ? (
+            <p className="px-5 py-6 text-center text-sm text-muted">No license issues.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {summary.licenseAttention.map((l) => (
+                <li key={l.customerId} className="flex items-start gap-3 px-5 py-3 text-sm">
+                  <BadgeAlert className="mt-0.5 h-4 w-4 shrink-0 text-coral" />
+                  <div>
+                    <Link to={`/customers/${l.customerId}`} className="font-medium hover:underline">
+                      {l.customerName}
+                    </Link>
+                    <div className="text-muted">{l.reason}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="mt-4">
         <CardHeader>
