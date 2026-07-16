@@ -37,7 +37,7 @@ See `.env.example`. Notable ones:
 ## Build status (phased per SPEC.md §12)
 
 - [x] **Phase 0 — Foundation**: monorepo, Prisma schema + seed, Express skeleton, JWT auth + roles, React shell (sidebar/topbar, RTL-ready i18n, login), deploy skeleton.
-- [x] **Phase 1 — Core CRUD**: Customers, Employees, Projects (API + list/detail/forms), project team assignments.
+- [x] **Phase 1 — Core CRUD**: Customers, Employees, Projects (API + list/detail/forms), project team assignments. Customers also track an optional Jeen product license (has license, annual amount, current period start/end, whether the current period is paid) — editable from the customer form, shown in a "License" card on the customer detail page.
 - [x] **Phase 2 — Monthly Planning**: allocations API (range query, bulk upsert, copy-forward), capacity overrides API, planning grid UI (by-employee and by-project pivots, inline edit, utilization heatmap colors, month window controls, copy-forward).
 - [x] **Phase 3 — Reports & Dashboard**: six report services (utilization, demand/capacity, project burn, profitability, customer portfolio, revenue forecast) + filterable/sortable report pages, and a dashboard with live cards, at-risk list, revenue chart, and team utilization heatmap.
 - [x] **Phase 4 — Gantt**: `GET /api/gantt/projects` + a project Gantt at `/gantt` (`gantt-task-react`) grouped by customer (collapsible), colored by status, progress fill from hours consumed, week/month/quarter zoom, hover tooltip, click-through to project detail. Resource Gantt (per-employee) is out of scope for v1 per spec §4.7.

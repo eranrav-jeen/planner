@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ErrorState } from '../../components/ui/error-state';
 import { CustomerForm } from './CustomerForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
-import { formatCurrency, formatHours } from '../../lib/format';
+import { formatCurrency, formatHours, useDateFormatter } from '../../lib/format';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +18,7 @@ export function CustomerDetail() {
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const { data: customer, isLoading, isError, refetch } = useCustomer(id);
+  const formatDate = useDateFormatter();
   const updateCustomer = useUpdateCustomer(id!);
   const deleteCustomer = useDeleteCustomer();
   const [formOpen, setFormOpen] = useState(false);
@@ -103,6 +104,36 @@ export function CustomerDetail() {
             <Badge status={customer.status}>{customer.status}</Badge>
           </p>
           {customer.notes && <p className="text-muted">{customer.notes}</p>}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>License</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1 text-sm">
+          {customer.hasLicense ? (
+            <>
+              <p>
+                <span className="text-muted">Annual amount: </span>
+                {customer.licenseAnnualAmount != null ? formatCurrency(customer.licenseAnnualAmount) : '—'}
+              </p>
+              <p>
+                <span className="text-muted">Current period: </span>
+                {customer.licensePeriodStart ? formatDate(customer.licensePeriodStart) : '—'}
+                {' – '}
+                {customer.licensePeriodEnd ? formatDate(customer.licensePeriodEnd) : '—'}
+              </p>
+              <p>
+                <span className="text-muted">Payment status: </span>
+                <Badge status={customer.licensePaid ? 'paid' : 'unpaid'}>
+                  {customer.licensePaid ? 'Paid' : 'Unpaid'}
+                </Badge>
+              </p>
+            </>
+          ) : (
+            <p className="text-muted">Not licensed.</p>
+          )}
         </CardContent>
       </Card>
 

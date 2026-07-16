@@ -10,6 +10,11 @@ export interface Customer {
   contactEmail?: string | null;
   status: CustomerStatus;
   notes?: string | null;
+  hasLicense: boolean;
+  licenseAnnualAmount?: number | null;
+  licensePeriodStart?: string | null;
+  licensePeriodEnd?: string | null;
+  licensePaid: boolean;
   createdAt: string;
   updatedAt: string;
   projects?: Project[];

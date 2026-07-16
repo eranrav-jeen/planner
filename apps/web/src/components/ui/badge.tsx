@@ -9,6 +9,8 @@ const statusColors: Record<string, string> = {
   on_hold: 'bg-amber/20 text-charcoal',
   completed: 'bg-success/10 text-success',
   cancelled: 'bg-border text-muted',
+  paid: 'bg-success/10 text-success',
+  unpaid: 'bg-coral/15 text-coral',
 };
 
 export function Badge({

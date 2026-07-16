@@ -5,12 +5,21 @@ import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select, Textarea } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 
+function toDateInput(value?: string | null) {
+  return value ? value.slice(0, 10) : '';
+}
+
 const emptyInput: CustomerInput = {
   name: '',
   contactName: '',
   contactEmail: '',
   status: 'prospect',
   notes: '',
+  hasLicense: false,
+  licenseAnnualAmount: null,
+  licensePeriodStart: null,
+  licensePeriodEnd: null,
+  licensePaid: false,
 };
 
 export function CustomerForm({
@@ -75,6 +84,64 @@ export function CustomerForm({
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
           />
         </Field>
+
+        <div className="space-y-3 rounded-lg border border-border p-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={form.hasLicense}
+              onChange={(e) => setForm({ ...form, hasLicense: e.target.checked })}
+            />
+            Has Jeen product license
+          </label>
+
+          {form.hasLicense && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Annual license amount">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.licenseAnnualAmount ?? ''}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        licenseAnnualAmount: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                  />
+                </Field>
+                <div className="flex items-end pb-1.5">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.licensePaid}
+                      onChange={(e) => setForm({ ...form, licensePaid: e.target.checked })}
+                    />
+                    Current period paid
+                  </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Current period start">
+                  <Input
+                    type="date"
+                    value={toDateInput(form.licensePeriodStart)}
+                    onChange={(e) => setForm({ ...form, licensePeriodStart: e.target.value || null })}
+                  />
+                </Field>
+                <Field label="Current period end">
+                  <Input
+                    type="date"
+                    value={toDateInput(form.licensePeriodEnd)}
+                    onChange={(e) => setForm({ ...form, licensePeriodEnd: e.target.value || null })}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Cancel

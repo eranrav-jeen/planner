@@ -53,14 +53,19 @@ model User {
 }
 
 model Customer {
-  id           String         @id @default(uuid())
-  name         String
-  contactName  String?        @map("contact_name")
-  contactEmail String?        @map("contact_email")
-  status       CustomerStatus @default(prospect)
-  notes        String?
-  createdAt    DateTime       @default(now()) @map("created_at")
-  updatedAt    DateTime       @updatedAt @map("updated_at")
+  id                  String         @id @default(uuid())
+  name                String
+  contactName         String?        @map("contact_name")
+  contactEmail        String?        @map("contact_email")
+  status              CustomerStatus @default(prospect)
+  notes               String?
+  hasLicense          Boolean        @default(false) @map("has_license")
+  licenseAnnualAmount Decimal?       @map("license_annual_amount") @db.Decimal(14, 2)
+  licensePeriodStart  DateTime?      @map("license_period_start") @db.Date
+  licensePeriodEnd    DateTime?      @map("license_period_end") @db.Date
+  licensePaid         Boolean        @default(false) @map("license_paid")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
 
   projects Project[]
 

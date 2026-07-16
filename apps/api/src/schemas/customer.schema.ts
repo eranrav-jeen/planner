@@ -8,6 +8,11 @@ export const customerInputSchema = z.object({
   contactEmail: z.string().email().optional().nullable().or(z.literal('')),
   status: customerStatusEnum.default('prospect'),
   notes: z.string().optional().nullable(),
+  hasLicense: z.boolean().default(false),
+  licenseAnnualAmount: z.coerce.number().min(0).optional().nullable(),
+  licensePeriodStart: z.coerce.date().optional().nullable(),
+  licensePeriodEnd: z.coerce.date().optional().nullable(),
+  licensePaid: z.boolean().default(false),
 });
 
 export const customerListQuerySchema = z.object({
