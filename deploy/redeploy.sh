@@ -39,6 +39,14 @@ else
   echo "==> No dependency changes — skipping npm ci"
 fi
 
+echo "==> Regenerating Prisma Client"
+# @prisma/client normally regenerates itself via its own postinstall hook during
+# `npm ci`, which we often skip. `prisma migrate deploy` does NOT regenerate it,
+# so a schema change without a package.json change would otherwise leave the
+# server running a stale client (e.g. "Unknown argument" errors on new fields).
+# This is cheap (a couple seconds, no network), so just always run it.
+npx prisma generate
+
 echo "==> Running migrations"
 set -a; source apps/api/.env; set +a
 npx prisma migrate deploy

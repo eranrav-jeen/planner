@@ -61,7 +61,7 @@ See `.env.example`. Notable ones:
 
 ### Redeploying manually
 
-For routine code changes (no new dependencies), run `bash deploy/redeploy.sh` on the server — it fetches `main`, and skips `npm ci`/`npm run build` when the diff since the last deploy shows no `package-lock.json`/`apps/`/`prisma/` changes, which is the common case and saves the ~2 minutes `npm ci` otherwise costs. It still always runs `prisma migrate deploy` (a fast no-op when there's nothing pending) and `pm2 reload`. Pass a branch name as an argument to deploy something other than `main`.
+For routine code changes (no new dependencies), run `bash deploy/redeploy.sh` on the server — it fetches `main`, and skips `npm ci`/`npm run build` when the diff since the last deploy shows no `package-lock.json`/`apps/`/`prisma/` changes, which is the common case and saves the ~2 minutes `npm ci` otherwise costs. It still always runs `prisma generate` and `prisma migrate deploy` (both fast no-ops when the schema hasn't changed) and `pm2 reload`. The `prisma generate` step matters even on schema-only changes with no dependency bump: `@prisma/client` normally regenerates itself via its own postinstall hook during `npm ci`, which this script often skips, and `prisma migrate deploy` does not regenerate the client on its own — skipping generate after a schema change leaves the server running a stale client (e.g. `Unknown argument` errors on newly-added fields). Pass a branch name as an argument to deploy something other than `main`.
 
 If you'd rather do it by hand, or `redeploy.sh` isn't present yet on the server, the equivalent full sequence is:
 ```bash
