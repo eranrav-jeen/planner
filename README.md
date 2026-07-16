@@ -63,6 +63,8 @@ See `.env.example`. Notable ones:
 
 For routine code changes (no new dependencies), run `bash deploy/redeploy.sh` on the server — it fetches `main`, and skips `npm ci`/`npm run build` when the diff since the last deploy shows no `package-lock.json`/`apps/`/`prisma/` changes, which is the common case and saves the ~2 minutes `npm ci` otherwise costs. It still always runs `prisma generate` and `prisma migrate deploy` (both fast no-ops when the schema hasn't changed) and `pm2 reload`. The `prisma generate` step matters even on schema-only changes with no dependency bump: `@prisma/client` normally regenerates itself via its own postinstall hook during `npm ci`, which this script often skips, and `prisma migrate deploy` does not regenerate the client on its own — skipping generate after a schema change leaves the server running a stale client (e.g. `Unknown argument` errors on newly-added fields). Pass a branch name as an argument to deploy something other than `main`.
 
+"What changed" is tracked via a marker file (`.deploy/last-built-sha`, git-ignored), not git HEAD — HEAD only reflects what's checked out, not what was actually built. If that marker is missing, or doesn't match both the current HEAD and `origin/main` (e.g. someone ran `git reset --hard` by hand outside the script, or a previous run failed partway and never reached the end), it does a full rebuild rather than guessing — a redundant `npm ci`/build costs a couple of minutes; silently skipping a needed one ships stale code.
+
 If you'd rather do it by hand, or `redeploy.sh` isn't present yet on the server, the equivalent full sequence is:
 ```bash
 cd /var/www/jeen-project-planner

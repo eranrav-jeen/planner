@@ -9,6 +9,7 @@ apps/web/dist/
 apps/api/dist/
 apps/api/uploads/po/*
 !apps/api/uploads/po/.gitkeep
+.deploy/
 coverage/
 .vscode/
 *.tsbuildinfo
