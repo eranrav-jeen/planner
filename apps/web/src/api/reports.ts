@@ -124,6 +124,8 @@ export function useForecastReport(from: string, to: string) {
 export interface DashboardSummary {
   activeProjectCount: number;
   totalIncome: number;
+  activeLicenseRevenue: number;
+  totalContractedIncome: number;
   totalHoursPaid: number;
   totalHoursConsumed: number;
   atRiskProjects: { projectId: string; projectName: string; projectCode: string; reason: string }[];

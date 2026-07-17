@@ -4,6 +4,7 @@ import type { CustomerInput } from '../../api/customers';
 import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select, Textarea } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
+import { AI_MODEL_GROUPS, ALL_CURATED_MODELS, LICENSE_PLATFORM_VERSIONS } from '../../lib/licenseOptions';
 
 function toDateInput(value?: string | null) {
   return value ? value.slice(0, 10) : '';
@@ -20,6 +21,8 @@ const emptyInput: CustomerInput = {
   licensePeriodStart: null,
   licensePeriodEnd: null,
   licensePaid: false,
+  licensePlatformVersion: null,
+  licenseModelsInstalled: [],
 };
 
 export function CustomerForm({
@@ -36,10 +39,29 @@ export function CustomerForm({
   isSubmitting: boolean;
 }) {
   const [form, setForm] = useState<CustomerInput>(customer ?? emptyInput);
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(
+    () => new Set((customer?.licenseModelsInstalled ?? []).filter((m) => ALL_CURATED_MODELS.has(m))),
+  );
+  const [otherModelsText, setOtherModelsText] = useState(() =>
+    (customer?.licenseModelsInstalled ?? []).filter((m) => !ALL_CURATED_MODELS.has(m)).join(', '),
+  );
+
+  function toggleModel(model: string) {
+    setSelectedModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(model)) next.delete(model);
+      else next.add(model);
+      return next;
+    });
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    onSubmit(form);
+    const otherModels = otherModelsText
+      .split(',')
+      .map((m) => m.trim())
+      .filter(Boolean);
+    onSubmit({ ...form, licenseModelsInstalled: [...selectedModels, ...otherModels] });
   }
 
   return (
@@ -92,7 +114,7 @@ export function CustomerForm({
               checked={form.hasLicense}
               onChange={(e) => setForm({ ...form, hasLicense: e.target.checked })}
             />
-            Has Jeen product license
+            Has Jeen Solution OS license
           </label>
 
           {form.hasLicense && (
@@ -137,6 +159,48 @@ export function CustomerForm({
                     onChange={(e) => setForm({ ...form, licensePeriodEnd: e.target.value || null })}
                   />
                 </Field>
+              </div>
+              <Field label="Platform version">
+                <Select
+                  value={form.licensePlatformVersion ?? ''}
+                  onChange={(e) => setForm({ ...form, licensePlatformVersion: e.target.value || null })}
+                >
+                  <option value="">Unknown</option>
+                  {LICENSE_PLATFORM_VERSIONS.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <div>
+                <span className="mb-1.5 block text-sm font-medium text-charcoal">Models installed</span>
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  {AI_MODEL_GROUPS.map((group) => (
+                    <div key={group.vendor}>
+                      <div className="mb-1 text-xs font-medium uppercase text-muted">{group.vendor}</div>
+                      <div className="grid grid-cols-2 gap-1">
+                        {group.models.map((model) => (
+                          <label key={model} className="flex items-center gap-1.5 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={selectedModels.has(model)}
+                              onChange={() => toggleModel(model)}
+                            />
+                            {model}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <Field label="Other models (comma-separated)">
+                    <Input
+                      value={otherModelsText}
+                      onChange={(e) => setOtherModelsText(e.target.value)}
+                      placeholder="e.g. Internal-LLM-v2"
+                    />
+                  </Field>
+                </div>
               </div>
             </>
           )}

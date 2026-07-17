@@ -9,7 +9,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-e border-border bg-surface">
       <div className="flex items-center gap-2 px-5 py-5">
-        <img src="/logo.svg" alt="Jeen" className="h-8 w-auto" />
+        <img src="/logo.svg" alt="Jeen Solution OS" className="h-8 w-auto" />
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navItems.map((item) => (
@@ -31,7 +31,7 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="px-5 py-4 text-xs text-muted">Jeen.AI Planner v0.1</div>
+      <div className="px-5 py-4 text-xs text-muted">Jeen Solution OS v0.1</div>
     </aside>
   );
 }

@@ -15,6 +15,8 @@ export interface Customer {
   licensePeriodStart?: string | null;
   licensePeriodEnd?: string | null;
   licensePaid: boolean;
+  licensePlatformVersion?: string | null;
+  licenseModelsInstalled: string[];
   createdAt: string;
   updatedAt: string;
   projects?: Project[];

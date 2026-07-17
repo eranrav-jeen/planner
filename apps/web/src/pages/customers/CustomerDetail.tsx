@@ -130,6 +130,14 @@ export function CustomerDetail() {
                   {customer.licensePaid ? 'Paid' : 'Unpaid'}
                 </Badge>
               </p>
+              <p>
+                <span className="text-muted">Platform version: </span>
+                {customer.licensePlatformVersion ?? '—'}
+              </p>
+              <p>
+                <span className="text-muted">Models installed: </span>
+                {customer.licenseModelsInstalled.length > 0 ? customer.licenseModelsInstalled.join(', ') : '—'}
+              </p>
             </>
           ) : (
             <p className="text-muted">Not licensed.</p>

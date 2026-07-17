@@ -43,6 +43,15 @@ export async function getDashboardSummary() {
     0,
   );
 
+  const activeLicenseRevenue = licensedCustomers.reduce((sum, c) => {
+    const isCurrentlyActive =
+      c.licensePeriodStart != null &&
+      c.licensePeriodEnd != null &&
+      c.licensePeriodStart <= now &&
+      c.licensePeriodEnd >= now;
+    return isCurrentlyActive ? sum + Number(c.licenseAnnualAmount ?? 0) : sum;
+  }, 0);
+
   const warningCutoff = new Date(now.getTime() + LICENSE_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000);
   const licenseAttention: { customerId: string; customerName: string; reason: string }[] = [];
   for (const c of licensedCustomers) {
@@ -63,6 +72,8 @@ export async function getDashboardSummary() {
   return {
     activeProjectCount: activeProjects.length,
     totalIncome,
+    activeLicenseRevenue,
+    totalContractedIncome: totalIncome + activeLicenseRevenue,
     totalHoursPaid,
     totalHoursConsumed: totalConsumed,
     atRiskProjects: atRisk,

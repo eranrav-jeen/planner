@@ -64,6 +64,8 @@ model Customer {
   licensePeriodStart  DateTime?      @map("license_period_start") @db.Date
   licensePeriodEnd    DateTime?      @map("license_period_end") @db.Date
   licensePaid         Boolean        @default(false) @map("license_paid")
+  licensePlatformVersion String?     @map("license_platform_version")
+  licenseModelsInstalled String[]    @default([]) @map("license_models_installed")
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
 

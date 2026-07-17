@@ -33,7 +33,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-card">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <img src="/logo.svg" alt="Jeen" className="h-9 w-auto" />
+          <img src="/logo.svg" alt="Jeen Solution OS" className="h-9 w-auto" />
           <div className="text-center">
             <h1 className="text-lg font-semibold text-charcoal">{t('login.title')}</h1>
             <p className="text-sm text-muted">{t('login.subtitle')}</p>

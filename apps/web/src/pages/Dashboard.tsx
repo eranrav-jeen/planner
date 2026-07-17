@@ -53,7 +53,12 @@ export function Dashboard() {
             <CardTitle>Contracted income</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
-            {summary ? formatCurrency(summary.totalIncome) : '—'}
+            {summary ? formatCurrency(summary.totalContractedIncome) : '—'}
+            {summary && summary.activeLicenseRevenue > 0 && (
+              <p className="text-xs font-normal text-muted">
+                {formatCurrency(summary.totalIncome)} projects + {formatCurrency(summary.activeLicenseRevenue)} active licenses
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>

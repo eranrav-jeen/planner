@@ -26,7 +26,8 @@ const LOGO_SVG = `<svg width="90" height="26" viewBox="0 0 150 42" fill="none" x
   <rect x="0" y="2" width="17" height="17" rx="5" fill="#E7B6EB"/>
   <rect x="0" y="23" width="14" height="14" rx="5" fill="#F3AB56"/>
   <rect x="20" y="4" width="15" height="33" rx="6" fill="#E45B4E"/>
-  <text x="46" y="30" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#232122">Jeen</text>
+  <text x="46" y="21" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#232122">Jeen</text>
+  <text x="46" y="34" font-family="Arial, sans-serif" font-size="10.5" font-weight="600" letter-spacing="0.5" fill="#6B7280">Solution OS</text>
 </svg>`;
 
 export function buildReportHtml(

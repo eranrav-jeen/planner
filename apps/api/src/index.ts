@@ -53,5 +53,5 @@ app.use('/api', notFoundHandler);
 app.use(errorHandler);
 
 app.listen(env.port, () => {
-  console.log(`Jeen Planner API listening on port ${env.port}`);
+  console.log(`Jeen Solution OS API listening on port ${env.port}`);
 });

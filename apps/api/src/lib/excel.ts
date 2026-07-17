@@ -32,7 +32,7 @@ export async function buildWorkbook(
   totals?: Record<string, unknown>,
 ): Promise<ExcelJS.Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Jeen Planner';
+  workbook.creator = 'Jeen Solution OS';
   workbook.created = meta.generatedAt;
 
   const sheet = workbook.addWorksheet(meta.title.slice(0, 31) || 'Report');
