@@ -13,12 +13,14 @@ export interface ProjectForecast {
   total: number;
 }
 
-export async function getForecastReport(params: { from: string; to: string }) {
+export async function getForecastReport(params: { from: string; to: string; projectIds?: string[] }) {
   const fromDate = parseMonthParam(params.from);
   const toDate = parseMonthParam(params.to);
   const windowMonths = monthsBetween(fromDate, toDate).map(monthKey);
 
-  const projects = await prisma.project.findMany();
+  const projects = await prisma.project.findMany({
+    where: params.projectIds ? { id: { in: params.projectIds } } : {},
+  });
   const allocations = await prisma.monthlyAllocation.findMany({
     where: { projectId: { in: projects.map((p) => p.id) } },
   });

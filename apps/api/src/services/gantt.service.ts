@@ -16,12 +16,18 @@ export interface GanttProjectRow {
   currency: string;
 }
 
-export async function getGanttProjects(params: { customerId?: string; from?: Date; to?: Date }) {
+export async function getGanttProjects(params: {
+  customerId?: string;
+  from?: Date;
+  to?: Date;
+  projectIds?: string[];
+}) {
   const projects = await prisma.project.findMany({
     where: {
       ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.from ? { OR: [{ endDate: null }, { endDate: { gte: params.from } }] } : {}),
       ...(params.to ? { startDate: { lte: params.to } } : {}),
+      ...(params.projectIds ? { id: { in: params.projectIds } } : {}),
     },
     include: { customer: true },
     orderBy: [{ customerId: 'asc' }, { startDate: 'asc' }],

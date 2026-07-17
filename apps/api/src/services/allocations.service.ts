@@ -43,7 +43,7 @@ export async function bulkUpsertAllocations(items: AllocationItem[]) {
 export async function copyForwardAllocations(
   fromMonth: string,
   toMonths: string[],
-  filters: { employeeId?: string; projectId?: string },
+  filters: { employeeId?: string; projectId?: string; restrictToProjectIds?: string[] },
 ) {
   const sourceMonth = parseMonthParam(fromMonth);
   const source = await prisma.monthlyAllocation.findMany({
@@ -51,6 +51,7 @@ export async function copyForwardAllocations(
       month: sourceMonth,
       ...(filters.employeeId ? { employeeId: filters.employeeId } : {}),
       ...(filters.projectId ? { projectId: filters.projectId } : {}),
+      ...(filters.restrictToProjectIds ? { projectId: { in: filters.restrictToProjectIds } } : {}),
     },
   });
 

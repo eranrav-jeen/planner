@@ -10,6 +10,14 @@ import { ApiError } from '../middleware/error.js';
 import { prisma } from '../lib/prisma.js';
 import { monthKey, monthsBetween, parseMonthParam } from '../lib/month.js';
 import type { Role } from '@prisma/client';
+import {
+  getAccessibleCustomerIds,
+  getAccessibleEmployeeIds,
+  intersectIds,
+  intersectProjectIds,
+  isProjectAccessible,
+  type AccessScope,
+} from '../lib/accessScope.js';
 
 function roundHours(hours: number): number {
   return Math.round(hours * 100) / 100;
@@ -38,6 +46,7 @@ export async function buildExportDefinition(
   report: string,
   query: Record<string, string | undefined>,
   role: Role,
+  scope: AccessScope = null,
 ): Promise<ExportDefinition> {
   const generatedAt = new Date();
 
@@ -45,11 +54,14 @@ export async function buildExportDefinition(
     case 'utilization': {
       const from = requireParam(query, 'from');
       const to = requireParam(query, 'to');
+      const accessibleEmployeeIds = await getAccessibleEmployeeIds(scope);
+      const employeeIds = intersectIds(accessibleEmployeeIds, query.employeeId);
       const { rows, totalsByMonth } = await getUtilizationReport({
         from,
         to,
         employeeId: query.employeeId,
         department: query.department,
+        employeeIds,
       });
       const exportRows: Record<string, unknown>[] = rows.map((r) => ({ ...r }));
       for (const t of totalsByMonth) {
@@ -77,7 +89,8 @@ export async function buildExportDefinition(
     case 'demand-capacity': {
       const from = requireParam(query, 'from');
       const to = requireParam(query, 'to');
-      const { rows } = await getDemandCapacityReport({ from, to });
+      const employeeIds = await getAccessibleEmployeeIds(scope);
+      const { rows } = await getDemandCapacityReport({ from, to, employeeIds: employeeIds ?? undefined });
       const totals = rows.reduce(
         (acc, r) => ({ demand: acc.demand + r.demand, capacity: acc.capacity + r.capacity, gap: acc.gap + r.gap }),
         { demand: 0, capacity: 0, gap: 0 },
@@ -96,7 +109,11 @@ export async function buildExportDefinition(
     }
 
     case 'project-burn': {
-      const { rows } = await getProjectBurnReport({ customerId: query.customerId, status: query.status });
+      const { rows } = await getProjectBurnReport({
+        customerId: query.customerId,
+        status: query.status,
+        projectIds: intersectProjectIds(scope, undefined),
+      });
       const totals = rows.reduce(
         (acc, r) => ({
           hoursPaid: acc.hoursPaid + r.hoursPaid,
@@ -131,7 +148,11 @@ export async function buildExportDefinition(
       if (role !== 'ADMIN' && role !== 'MANAGER') {
         throw new ApiError(403, 'Insufficient permissions');
       }
-      const { rows } = await getProfitabilityReport({ customerId: query.customerId, status: query.status });
+      const { rows } = await getProfitabilityReport({
+        customerId: query.customerId,
+        status: query.status,
+        projectIds: intersectProjectIds(scope, undefined),
+      });
       const totalsRaw = rows.reduce(
         (acc, r) => ({ income: acc.income + r.income, cost: acc.cost + r.cost, margin: acc.margin + r.margin }),
         { income: 0, cost: 0, margin: 0 },
@@ -162,7 +183,11 @@ export async function buildExportDefinition(
     }
 
     case 'portfolio': {
-      const { rows } = await getPortfolioReport();
+      const customerIds = await getAccessibleCustomerIds(scope);
+      const { rows } = await getPortfolioReport({
+        customerIds: customerIds ?? undefined,
+        projectIds: scope?.projectIds,
+      });
       const totals = rows.reduce(
         (acc, r) => ({
           projectCount: acc.projectCount + r.projectCount,
@@ -190,7 +215,7 @@ export async function buildExportDefinition(
     case 'forecast': {
       const from = requireParam(query, 'from');
       const to = requireParam(query, 'to');
-      const { byProject } = await getForecastReport({ from, to });
+      const { byProject } = await getForecastReport({ from, to, projectIds: scope?.projectIds });
       const total = byProject.reduce((sum, p) => sum + p.total, 0);
       return {
         meta: { title: 'Revenue Forecast', generatedAt, filters: { from, to } },
@@ -211,6 +236,7 @@ export async function buildExportDefinition(
         customerId: query.customerId,
         from: query.from ? new Date(query.from) : undefined,
         to: query.to ? new Date(query.to) : undefined,
+        projectIds: scope?.projectIds,
       });
       return {
         meta: { title: 'Project Gantt', generatedAt, filters: { customerId: query.customerId } },
@@ -235,6 +261,10 @@ export async function buildExportDefinition(
       if (pivot === 'project' && !projectIdFilter) {
         throw new ApiError(422, 'Missing required query param: projectId');
       }
+      if (projectIdFilter && !isProjectAccessible(scope, projectIdFilter)) {
+        throw new ApiError(403, 'You do not have access to this project');
+      }
+      const scopedProjectIds = intersectProjectIds(scope, projectIdFilter);
 
       const fromDate = parseMonthParam(from);
       const toDate = parseMonthParam(to);
@@ -244,13 +274,13 @@ export async function buildExportDefinition(
 
       const [assignments, allocations] = await Promise.all([
         prisma.projectAssignment.findMany({
-          where: projectIdFilter ? { projectId: projectIdFilter } : {},
+          where: scopedProjectIds !== undefined ? { projectId: { in: scopedProjectIds } } : {},
           include: { employee: true, project: { include: { customer: true } } },
         }),
         prisma.monthlyAllocation.findMany({
           where: {
             month: { gte: fromDate, lte: toDate },
-            ...(projectIdFilter ? { projectId: projectIdFilter } : {}),
+            ...(scopedProjectIds !== undefined ? { projectId: { in: scopedProjectIds } } : {}),
           },
         }),
       ]);

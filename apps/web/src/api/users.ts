@@ -8,6 +8,8 @@ export interface User {
   role: Role;
   employeeId: string | null;
   isActive: boolean;
+  isRestricted: boolean;
+  projectAccessIds: string[];
   createdAt: string;
 }
 
@@ -17,6 +19,8 @@ export interface UserInput {
   role: Role;
   employeeId?: string | null;
   isActive?: boolean;
+  isRestricted?: boolean;
+  projectAccessIds?: string[];
 }
 
 export function useUsers() {

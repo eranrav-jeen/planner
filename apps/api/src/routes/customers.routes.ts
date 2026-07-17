@@ -9,6 +9,7 @@ import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
+import { getAccessScope, getAccessibleCustomerIds } from '../lib/accessScope.js';
 
 export const customersRouter = Router();
 customersRouter.use(requireAuth);
@@ -21,7 +22,10 @@ customersRouter.get(
       typeof customerListQuerySchema
     >;
 
+    const accessibleIds = await getAccessibleCustomerIds(await getAccessScope(req));
+
     const where = {
+      ...(accessibleIds !== null ? { id: { in: accessibleIds } } : {}),
       ...(status ? { status } : {}),
       ...(search
         ? { name: { contains: search, mode: 'insensitive' as const } }
@@ -44,9 +48,20 @@ customersRouter.get(
 customersRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
+    const scope = await getAccessScope(req);
+    const accessibleIds = await getAccessibleCustomerIds(scope);
+    if (accessibleIds !== null && !accessibleIds.includes(req.params.id)) {
+      throw new ApiError(404, 'Customer not found');
+    }
+
     const customer = await prisma.customer.findUnique({
       where: { id: req.params.id },
-      include: { projects: { orderBy: { name: 'asc' } } },
+      include: {
+        projects: {
+          where: scope !== null ? { id: { in: scope.projectIds } } : {},
+          orderBy: { name: 'asc' },
+        },
+      },
     });
     if (!customer) throw new ApiError(404, 'Customer not found');
     res.json({ data: serializeDecimals(customer) });

@@ -1,10 +1,11 @@
 import { prisma } from '../lib/prisma.js';
 
-export async function getProjectBurnReport(params: { customerId?: string; status?: string }) {
+export async function getProjectBurnReport(params: { customerId?: string; status?: string; projectIds?: string[] }) {
   const projects = await prisma.project.findMany({
     where: {
       ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.status ? { status: params.status as never } : {}),
+      ...(params.projectIds ? { id: { in: params.projectIds } } : {}),
     },
     include: { customer: true },
     orderBy: { startDate: 'desc' },

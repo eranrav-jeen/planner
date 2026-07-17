@@ -5,6 +5,7 @@ import { ganttQuerySchema } from '../schemas/gantt.schema.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { getGanttProjects } from '../services/gantt.service.js';
+import { getAccessScope } from '../lib/accessScope.js';
 
 export const ganttRouter = Router();
 ganttRouter.use(requireAuth);
@@ -14,7 +15,8 @@ ganttRouter.get(
   validateQuery(ganttQuerySchema),
   asyncHandler(async (req, res) => {
     const { customerId, from, to } = req.query as unknown as { customerId?: string; from?: Date; to?: Date };
-    const result = await getGanttProjects({ customerId, from, to });
+    const scope = await getAccessScope(req);
+    const result = await getGanttProjects({ customerId, from, to, projectIds: scope?.projectIds });
     res.json({ data: serializeDecimals(result) });
   }),
 );

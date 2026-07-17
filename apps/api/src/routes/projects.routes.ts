@@ -16,6 +16,7 @@ import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
 import { PO_UPLOAD_DIR, decodeOriginalFilename, poUpload } from '../lib/uploads.js';
+import { getAccessScope, intersectProjectIds, isProjectAccessible, requireProjectAccess } from '../lib/accessScope.js';
 
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
@@ -28,7 +29,10 @@ projectsRouter.get(
       typeof projectListQuerySchema
     >;
 
+    const scope = await getAccessScope(req);
+
     const where = {
+      ...(scope !== null ? { id: { in: scope.projectIds } } : {}),
       ...(status ? { status } : {}),
       ...(customerId ? { customerId } : {}),
       ...(search
@@ -58,6 +62,9 @@ projectsRouter.get(
 projectsRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
+    if (!isProjectAccessible(await getAccessScope(req), req.params.id)) {
+      throw new ApiError(404, 'Project not found');
+    }
     const project = await prisma.project.findUnique({
       where: { id: req.params.id },
       include: {
@@ -92,6 +99,11 @@ projectsRouter.post(
   validateBody(projectInputSchema),
   asyncHandler(async (req, res) => {
     const project = await prisma.project.create({ data: req.body });
+    // A restricted Manager who creates a project wouldn't otherwise have
+    // access to what they just made — grant it automatically.
+    if (req.user!.isRestricted) {
+      await prisma.projectAccess.create({ data: { userId: req.user!.id, projectId: project.id } });
+    }
     res.status(201).json({ data: serializeDecimals(project) });
   }),
 );
@@ -99,6 +111,7 @@ projectsRouter.post(
 projectsRouter.put(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
+  requireProjectAccess('id'),
   validateBody(projectInputSchema),
   asyncHandler(async (req, res) => {
     const project = await prisma.project.update({ where: { id: req.params.id }, data: req.body });
@@ -109,6 +122,7 @@ projectsRouter.put(
 projectsRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
+  requireProjectAccess('id'),
   asyncHandler(async (req, res) => {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     try {
@@ -126,6 +140,7 @@ projectsRouter.delete(
 projectsRouter.post(
   '/:id/po',
   requireRole('ADMIN', 'MANAGER'),
+  requireProjectAccess('id'),
   poUpload.single('file'),
   asyncHandler(async (req, res) => {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
@@ -153,6 +168,9 @@ projectsRouter.post(
 projectsRouter.get(
   '/:id/po',
   asyncHandler(async (req, res) => {
+    if (!isProjectAccessible(await getAccessScope(req), req.params.id)) {
+      throw new ApiError(404, 'No purchase order attached');
+    }
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project?.poStoredName) throw new ApiError(404, 'No purchase order attached');
     res.download(path.join(PO_UPLOAD_DIR, project.poStoredName), project.poFileName ?? 'purchase-order');
@@ -162,6 +180,7 @@ projectsRouter.get(
 projectsRouter.delete(
   '/:id/po',
   requireRole('ADMIN', 'MANAGER'),
+  requireProjectAccess('id'),
   asyncHandler(async (req, res) => {
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project) throw new ApiError(404, 'Project not found');
@@ -180,6 +199,7 @@ projectsRouter.delete(
 
 projectsRouter.get(
   '/:id/assignments',
+  requireProjectAccess('id'),
   asyncHandler(async (req, res) => {
     const assignments = await prisma.projectAssignment.findMany({
       where: { projectId: req.params.id },
@@ -192,6 +212,7 @@ projectsRouter.get(
 projectsRouter.post(
   '/:id/assignments',
   requireRole('ADMIN', 'MANAGER'),
+  requireProjectAccess('id'),
   validateBody(assignmentInputSchema),
   asyncHandler(async (req, res) => {
     const assignment = await prisma.projectAssignment.create({
@@ -208,10 +229,12 @@ assignmentsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const { employeeId, projectId } = req.query as { employeeId?: string; projectId?: string };
+    const scope = await getAccessScope(req);
+    const scopedProjectIds = intersectProjectIds(scope, projectId);
     const assignments = await prisma.projectAssignment.findMany({
       where: {
         ...(employeeId ? { employeeId } : {}),
-        ...(projectId ? { projectId } : {}),
+        ...(scopedProjectIds !== undefined ? { projectId: { in: scopedProjectIds } } : {}),
       },
       include: {
         employee: { select: { id: true, firstName: true, lastName: true, monthlyCapacityHours: true } },
@@ -234,6 +257,11 @@ assignmentsRouter.delete(
   '/:id',
   requireRole('ADMIN', 'MANAGER'),
   asyncHandler(async (req, res) => {
+    const assignment = await prisma.projectAssignment.findUnique({ where: { id: req.params.id } });
+    if (!assignment) throw new ApiError(404, 'Assignment not found');
+    if (!isProjectAccessible(await getAccessScope(req), assignment.projectId)) {
+      throw new ApiError(403, 'You do not have access to this project');
+    }
     await prisma.projectAssignment.delete({ where: { id: req.params.id } });
     res.json({ data: { ok: true } });
   }),

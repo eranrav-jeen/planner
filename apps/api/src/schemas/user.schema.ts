@@ -7,6 +7,8 @@ export const createUserSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: roleEnum.default('VIEWER'),
   employeeId: z.string().uuid().optional().nullable(),
+  isRestricted: z.boolean().optional(),
+  projectAccessIds: z.array(z.string().uuid()).optional(),
 });
 
 export const updateUserSchema = z.object({
@@ -15,4 +17,6 @@ export const updateUserSchema = z.object({
   role: roleEnum.optional(),
   employeeId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional(),
+  isRestricted: z.boolean().optional(),
+  projectAccessIds: z.array(z.string().uuid()).optional(),
 });

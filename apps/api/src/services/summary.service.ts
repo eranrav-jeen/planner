@@ -2,11 +2,19 @@ import { prisma } from '../lib/prisma.js';
 
 const LICENSE_EXPIRY_WARNING_DAYS = 30;
 
-export async function getDashboardSummary() {
-  const projects = await prisma.project.findMany();
-  const licensedCustomers = await prisma.customer.findMany({ where: { hasLicense: true } });
+export async function getDashboardSummary(params: { projectIds?: string[]; customerIds?: string[] } = {}) {
+  const projects = await prisma.project.findMany({
+    where: params.projectIds ? { id: { in: params.projectIds } } : {},
+  });
+  const licensedCustomers = await prisma.customer.findMany({
+    where: {
+      hasLicense: true,
+      ...(params.customerIds ? { id: { in: params.customerIds } } : {}),
+    },
+  });
   const sums = await prisma.monthlyAllocation.groupBy({
     by: ['projectId'],
+    where: params.projectIds ? { projectId: { in: params.projectIds } } : {},
     _sum: { plannedHours: true, actualHours: true },
   });
   const sumMap = new Map(sums.map((s) => [s.projectId, s]));

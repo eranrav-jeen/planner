@@ -16,6 +16,7 @@ export async function getUtilizationReport(params: {
   to: string;
   employeeId?: string;
   department?: string;
+  employeeIds?: string[];
 }) {
   const fromDate = parseMonthParam(params.from);
   const toDate = parseMonthParam(params.to);
@@ -26,6 +27,7 @@ export async function getUtilizationReport(params: {
       isActive: true,
       ...(params.employeeId ? { id: params.employeeId } : {}),
       ...(params.department ? { department: params.department } : {}),
+      ...(params.employeeIds ? { id: { in: params.employeeIds } } : {}),
     },
     orderBy: { firstName: 'asc' },
   });

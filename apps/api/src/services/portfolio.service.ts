@@ -1,8 +1,11 @@
 import { prisma } from '../lib/prisma.js';
 
-export async function getPortfolioReport() {
+export async function getPortfolioReport(params: { customerIds?: string[]; projectIds?: string[] } = {}) {
   const customers = await prisma.customer.findMany({
-    include: { projects: true },
+    where: params.customerIds ? { id: { in: params.customerIds } } : {},
+    include: {
+      projects: params.projectIds ? { where: { id: { in: params.projectIds } } } : true,
+    },
     orderBy: { name: 'asc' },
   });
 

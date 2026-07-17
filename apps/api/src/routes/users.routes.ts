@@ -11,15 +11,48 @@ import { assertDeletable } from '../lib/prismaErrors.js';
 export const usersRouter = Router();
 usersRouter.use(requireAuth, requireRole('ADMIN'));
 
-function toSafeUser(user: { id: string; email: string; role: string; employeeId: string | null; isActive: boolean; createdAt: Date }) {
-  const { id, email, role, employeeId, isActive, createdAt } = user;
-  return { id, email, role, employeeId, isActive, createdAt };
+type UserWithAccess = {
+  id: string;
+  email: string;
+  role: string;
+  employeeId: string | null;
+  isActive: boolean;
+  isRestricted: boolean;
+  createdAt: Date;
+  projectAccess: { projectId: string }[];
+};
+
+function toSafeUser(user: UserWithAccess) {
+  const { id, email, role, employeeId, isActive, isRestricted, createdAt, projectAccess } = user;
+  return {
+    id,
+    email,
+    role,
+    employeeId,
+    isActive,
+    isRestricted,
+    createdAt,
+    projectAccessIds: projectAccess.map((a) => a.projectId),
+  };
+}
+
+async function syncProjectAccess(userId: string, projectAccessIds: string[] | undefined) {
+  if (projectAccessIds === undefined) return;
+  await prisma.$transaction([
+    prisma.projectAccess.deleteMany({ where: { userId } }),
+    prisma.projectAccess.createMany({
+      data: [...new Set(projectAccessIds)].map((projectId) => ({ userId, projectId })),
+    }),
+  ]);
 }
 
 usersRouter.get(
   '/',
   asyncHandler(async (_req, res) => {
-    const users = await prisma.user.findMany({ orderBy: { email: 'asc' } });
+    const users = await prisma.user.findMany({
+      orderBy: { email: 'asc' },
+      include: { projectAccess: { select: { projectId: true } } },
+    });
     res.json({ data: users.map(toSafeUser) });
   }),
 );
@@ -28,14 +61,26 @@ usersRouter.post(
   '/',
   validateBody(createUserSchema),
   asyncHandler(async (req, res) => {
-    const { email, password, role, employeeId } = req.body;
+    const { email, password, role, employeeId, isRestricted, projectAccessIds } = req.body;
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) throw new ApiError(422, 'A user with this email already exists', { email: 'Already in use' });
 
     const user = await prisma.user.create({
-      data: { email, passwordHash: await bcrypt.hash(password, 10), role, employeeId: employeeId ?? null },
+      data: {
+        email,
+        passwordHash: await bcrypt.hash(password, 10),
+        role,
+        employeeId: employeeId ?? null,
+        isRestricted: isRestricted ?? false,
+      },
     });
-    res.status(201).json({ data: toSafeUser(user) });
+    await syncProjectAccess(user.id, projectAccessIds);
+
+    const withAccess = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { projectAccess: { select: { projectId: true } } },
+    });
+    res.status(201).json({ data: toSafeUser(withAccess!) });
   }),
 );
 
@@ -43,12 +88,18 @@ usersRouter.put(
   '/:id',
   validateBody(updateUserSchema),
   asyncHandler(async (req, res) => {
-    const { password, ...rest } = req.body;
+    const { password, projectAccessIds, ...rest } = req.body;
     const data: Record<string, unknown> = { ...rest };
     if (password) data.passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.update({ where: { id: req.params.id }, data });
-    res.json({ data: toSafeUser(user) });
+    await syncProjectAccess(user.id, projectAccessIds);
+
+    const withAccess = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { projectAccess: { select: { projectId: true } } },
+    });
+    res.json({ data: toSafeUser(withAccess!) });
   }),
 );
 

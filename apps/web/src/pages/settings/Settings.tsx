@@ -97,7 +97,14 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
                   {u.email}
                   {u.id === currentUserId && <span className="ms-1.5 text-xs text-muted">(you)</span>}
                 </td>
-                <td className="px-5 py-3 capitalize text-muted">{u.role.toLowerCase()}</td>
+                <td className="px-5 py-3 capitalize text-muted">
+                  {u.role.toLowerCase()}
+                  {u.isRestricted && (
+                    <span className="ms-1.5 text-xs normal-case text-coral">
+                      (restricted to {u.projectAccessIds.length} project{u.projectAccessIds.length === 1 ? '' : 's'})
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3">
                   <Badge status={u.isActive ? 'active' : 'inactive'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
@@ -127,6 +134,7 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
       </Card>
 
       <UserForm
+        key={editing?.id ?? 'new'}
         open={formOpen}
         onOpenChange={setFormOpen}
         user={editing ?? undefined}

@@ -1,20 +1,33 @@
 import { prisma } from '../lib/prisma.js';
 import { monthKey, monthsBetween, parseMonthParam } from '../lib/month.js';
 
-export async function getDemandCapacityReport(params: { from: string; to: string }) {
+export async function getDemandCapacityReport(params: { from: string; to: string; employeeIds?: string[] }) {
   const fromDate = parseMonthParam(params.from);
   const toDate = parseMonthParam(params.to);
   const months = monthsBetween(fromDate, toDate);
 
-  const employees = await prisma.employee.findMany({ where: { isActive: true } });
+  const employees = await prisma.employee.findMany({
+    where: {
+      isActive: true,
+      ...(params.employeeIds ? { id: { in: params.employeeIds } } : {}),
+    },
+  });
 
   const [allocations, overrides] = await Promise.all([
     prisma.monthlyAllocation.groupBy({
       by: ['month'],
-      where: { month: { gte: fromDate, lte: toDate } },
+      where: {
+        month: { gte: fromDate, lte: toDate },
+        ...(params.employeeIds ? { employeeId: { in: params.employeeIds } } : {}),
+      },
       _sum: { plannedHours: true },
     }),
-    prisma.capacityOverride.findMany({ where: { month: { gte: fromDate, lte: toDate } } }),
+    prisma.capacityOverride.findMany({
+      where: {
+        month: { gte: fromDate, lte: toDate },
+        ...(params.employeeIds ? { employeeId: { in: params.employeeIds } } : {}),
+      },
+    }),
   ]);
 
   const demandByMonth = new Map<string, number>();

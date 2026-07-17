@@ -6,6 +6,7 @@ import { buildExportDefinition, EXPORTABLE_REPORTS, type ExportableReport } from
 import { buildWorkbook } from '../lib/excel.js';
 import { buildReportHtml } from '../lib/pdfTemplate.js';
 import { renderHtmlToPdf } from '../lib/pdf.js';
+import { getAccessScope } from '../lib/accessScope.js';
 
 export const exportRouter = Router();
 exportRouter.use(requireAuth);
@@ -22,10 +23,12 @@ exportRouter.get(
       throw new ApiError(422, `Unsupported export format: ${format}`);
     }
 
+    const scope = await getAccessScope(req);
     const definition = await buildExportDefinition(
       report,
       req.query as Record<string, string | undefined>,
       req.user!.role,
+      scope,
     );
 
     const filenameBase = `${report}-${new Date().toISOString().slice(0, 10)}`;

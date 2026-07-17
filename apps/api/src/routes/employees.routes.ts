@@ -9,6 +9,7 @@ import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
+import { getAccessScope, getAccessibleEmployeeIds } from '../lib/accessScope.js';
 import type { Request } from 'express';
 
 export const employeesRouter = Router();
@@ -30,7 +31,10 @@ employeesRouter.get(
       typeof employeeListQuerySchema
     >;
 
+    const accessibleIds = await getAccessibleEmployeeIds(await getAccessScope(req));
+
     const where = {
+      ...(accessibleIds !== null ? { id: { in: accessibleIds } } : {}),
       ...(department ? { department } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
       ...(search
@@ -62,10 +66,19 @@ employeesRouter.get(
 employeesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
+    const scope = await getAccessScope(req);
+    const accessibleIds = await getAccessibleEmployeeIds(scope);
+    if (accessibleIds !== null && !accessibleIds.includes(req.params.id)) {
+      throw new ApiError(404, 'Employee not found');
+    }
+
     const employee = await prisma.employee.findUnique({
       where: { id: req.params.id },
       include: {
-        assignments: { include: { project: true } },
+        assignments: {
+          where: scope !== null ? { projectId: { in: scope.projectIds } } : {},
+          include: { project: true },
+        },
       },
     });
     if (!employee) throw new ApiError(404, 'Employee not found');
