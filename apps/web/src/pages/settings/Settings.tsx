@@ -1,12 +1,19 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, Mail, Check } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { TableStatusRow } from '../../components/ui/table-status-row';
-import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, type User } from '../../api/users';
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useDeleteUser,
+  useSendWelcomeEmail,
+  type User,
+} from '../../api/users';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { UserForm } from './UserForm';
 
@@ -39,6 +46,34 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const updateUser = useUpdateUser(editing?.id ?? '');
   const deleteUser = useDeleteUser();
+  const sendWelcomeEmail = useSendWelcomeEmail();
+  const [welcomeStatus, setWelcomeStatus] = useState<Record<string, 'sent' | 'error'>>({});
+  const [welcomeErrorMsg, setWelcomeErrorMsg] = useState<Record<string, string>>({});
+
+  function handleSendWelcome(user: User) {
+    setWelcomeStatus((prev) => {
+      const { [user.id]: _drop, ...rest } = prev;
+      return rest;
+    });
+    sendWelcomeEmail.mutate(user.id, {
+      onSuccess: () => {
+        setWelcomeStatus((prev) => ({ ...prev, [user.id]: 'sent' }));
+        setTimeout(() => {
+          setWelcomeStatus((prev) => {
+            const { [user.id]: _drop, ...rest } = prev;
+            return rest;
+          });
+        }, 3000);
+      },
+      onError: (err) => {
+        setWelcomeStatus((prev) => ({ ...prev, [user.id]: 'error' }));
+        setWelcomeErrorMsg((prev) => ({
+          ...prev,
+          [user.id]: err instanceof ApiRequestError ? err.message : 'Failed to send email',
+        }));
+      },
+    });
+  }
 
   function openCreate() {
     setEditing(null);
@@ -109,7 +144,26 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
                   <Badge status={u.isActive ? 'active' : 'inactive'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="px-5 py-3 text-end">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2">
+                    {welcomeStatus[u.id] === 'sent' && (
+                      <span className="flex items-center gap-1 text-xs text-emerald-600">
+                        <Check className="h-3.5 w-3.5" /> Sent
+                      </span>
+                    )}
+                    {welcomeStatus[u.id] === 'error' && (
+                      <span className="text-xs text-coral" title={welcomeErrorMsg[u.id]}>
+                        Failed to send
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      title="Send welcome email"
+                      onClick={() => handleSendWelcome(u)}
+                      disabled={sendWelcomeEmail.isPending && sendWelcomeEmail.variables === u.id}
+                      className="text-muted hover:text-charcoal disabled:opacity-50"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </button>
                     <button type="button" onClick={() => openEdit(u)} className="text-muted hover:text-charcoal">
                       <Pencil className="h-4 w-4" />
                     </button>

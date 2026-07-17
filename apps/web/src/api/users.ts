@@ -53,3 +53,9 @@ export function useDeleteUser() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   });
 }
+
+export function useSendWelcomeEmail() {
+  return useMutation({
+    mutationFn: (id: string) => api.post<{ ok: true }>(`/users/${id}/welcome-email`),
+  });
+}

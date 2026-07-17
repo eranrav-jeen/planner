@@ -7,6 +7,8 @@ import { validateBody } from '../middleware/validate.js';
 import { createUserSchema, updateUserSchema } from '../schemas/user.schema.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
+import { sendMail } from '../lib/mailer.js';
+import { buildWelcomeEmail } from '../emails/welcomeEmail.js';
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth, requireRole('ADMIN'));
@@ -100,6 +102,22 @@ usersRouter.put(
       include: { projectAccess: { select: { projectId: true } } },
     });
     res.json({ data: toSafeUser(withAccess!) });
+  }),
+);
+
+usersRouter.post(
+  '/:id/welcome-email',
+  asyncHandler(async (req, res) => {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) throw new ApiError(404, 'User not found');
+
+    const { subject, html, text } = buildWelcomeEmail(user);
+    try {
+      await sendMail({ to: user.email, subject, html, text });
+    } catch (err) {
+      throw new ApiError(500, err instanceof Error ? err.message : 'Failed to send email');
+    }
+    res.json({ data: { ok: true } });
   }),
 );
 
