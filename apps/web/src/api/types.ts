@@ -51,6 +51,8 @@ export interface Project {
   currency: string;
   billingType: BillingType;
   description?: string | null;
+  githubRepoUrl?: string | null;
+  jiraBoardUrl?: string | null;
   poFileName?: string | null;
   poMimeType?: string | null;
   poFileSize?: number | null;

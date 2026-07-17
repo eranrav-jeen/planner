@@ -15,6 +15,8 @@ export const projectInputSchema = z.object({
   currency: z.string().default('ILS'),
   billingType: billingTypeEnum.default('time_and_materials'),
   description: z.string().optional().nullable(),
+  githubRepoUrl: z.string().url().optional().nullable().or(z.literal('')),
+  jiraBoardUrl: z.string().url().optional().nullable().or(z.literal('')),
 });
 
 export const projectListQuerySchema = z.object({

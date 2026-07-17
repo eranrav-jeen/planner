@@ -114,6 +114,8 @@ model Project {
   currency      String        @default("ILS")
   billingType   BillingType   @default(time_and_materials) @map("billing_type")
   description   String?
+  githubRepoUrl String?       @map("github_repo_url")
+  jiraBoardUrl  String?       @map("jira_board_url")
   poFileName    String?       @map("po_file_name")
   poStoredName  String?       @map("po_stored_name")
   poMimeType    String?       @map("po_mime_type")

@@ -23,6 +23,8 @@ function emptyInput(customerId = ''): ProjectInput {
     currency: 'ILS',
     billingType: 'time_and_materials',
     description: '',
+    githubRepoUrl: '',
+    jiraBoardUrl: '',
   };
 }
 
@@ -56,6 +58,8 @@ export function ProjectForm({
           currency: project.currency,
           billingType: project.billingType,
           description: project.description,
+          githubRepoUrl: project.githubRepoUrl,
+          jiraBoardUrl: project.jiraBoardUrl,
         }
       : emptyInput(defaultCustomerId),
   );
@@ -159,6 +163,24 @@ export function ProjectForm({
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </Field>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="GitHub repo">
+            <Input
+              type="url"
+              placeholder="https://github.com/org/repo"
+              value={form.githubRepoUrl ?? ''}
+              onChange={(e) => setForm({ ...form, githubRepoUrl: e.target.value })}
+            />
+          </Field>
+          <Field label="Jira board">
+            <Input
+              type="url"
+              placeholder="https://jeen.atlassian.net/jira/software/projects/..."
+              value={form.jiraBoardUrl ?? ''}
+              onChange={(e) => setForm({ ...form, jiraBoardUrl: e.target.value })}
+            />
+          </Field>
+        </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Cancel

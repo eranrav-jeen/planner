@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Download, FileText, Pencil, Trash2, Upload, UserPlus } from 'lucide-react';
+import { Download, ExternalLink, FileText, Github, KanbanSquare, Pencil, Trash2, Upload, UserPlus } from 'lucide-react';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
   useAddAssignment,
@@ -155,7 +155,7 @@ function PurchaseOrderCard({ project, canEdit }: { project: Project; canEdit: bo
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 pt-1">
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
                 variant="secondary"
                 size="sm"
@@ -195,6 +195,44 @@ function PurchaseOrderCard({ project, canEdit }: { project: Project; canEdit: bo
           />
         )}
         {uploadError && <p className="text-xs text-coral">{uploadError}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LinksCard({ project }: { project: Project }) {
+  const hasLinks = project.githubRepoUrl || project.jiraBoardUrl;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Links</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {!hasLinks && <p className="text-muted">No links added.</p>}
+        {project.githubRepoUrl && (
+          <a
+            href={project.githubRepoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 text-charcoal hover:underline"
+          >
+            <Github className="h-4 w-4 shrink-0 text-muted" />
+            <span className="truncate">GitHub repo</span>
+            <ExternalLink className="h-3 w-3 shrink-0 text-muted" />
+          </a>
+        )}
+        {project.jiraBoardUrl && (
+          <a
+            href={project.jiraBoardUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 text-charcoal hover:underline"
+          >
+            <KanbanSquare className="h-4 w-4 shrink-0 text-muted" />
+            <span className="truncate">Jira board</span>
+            <ExternalLink className="h-3 w-3 shrink-0 text-muted" />
+          </a>
+        )}
       </CardContent>
     </Card>
   );
@@ -247,7 +285,7 @@ export function ProjectDetail() {
         }
       />
 
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Burn</CardTitle>
@@ -287,6 +325,7 @@ export function ProjectDetail() {
           </CardContent>
         </Card>
         <PurchaseOrderCard project={project} canEdit={canEdit} />
+        <LinksCard project={project} />
       </div>
 
       <Card>
