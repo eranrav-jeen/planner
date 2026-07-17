@@ -15,7 +15,7 @@ import { toSkipTake } from '../lib/pagination.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
-import { PO_UPLOAD_DIR, poUpload } from '../lib/uploads.js';
+import { PO_UPLOAD_DIR, decodeOriginalFilename, poUpload } from '../lib/uploads.js';
 
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
@@ -139,7 +139,7 @@ projectsRouter.post(
     const updated = await prisma.project.update({
       where: { id: project.id },
       data: {
-        poFileName: req.file.originalname,
+        poFileName: decodeOriginalFilename(req.file.originalname),
         poStoredName: req.file.filename,
         poMimeType: req.file.mimetype,
         poFileSize: req.file.size,

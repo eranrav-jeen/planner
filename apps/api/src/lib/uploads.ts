@@ -17,11 +17,18 @@ const ALLOWED_PO_MIME_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
 
+// Busboy (which multer uses) decodes multipart filenames as latin1 by default,
+// but browsers send them UTF-8 encoded — non-ASCII names (e.g. Hebrew) come
+// through as mojibake unless re-decoded from the raw bytes.
+export function decodeOriginalFilename(name: string): string {
+  return Buffer.from(name, 'latin1').toString('utf8');
+}
+
 export const poUpload = multer({
   storage: multer.diskStorage({
     destination: PO_UPLOAD_DIR,
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname).slice(0, 20);
+      const ext = path.extname(decodeOriginalFilename(file.originalname)).slice(0, 20);
       cb(null, `${randomUUID()}${ext}`);
     },
   }),
