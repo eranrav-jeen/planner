@@ -28,10 +28,10 @@ export async function getDashboardSummary() {
 
     const hoursPaid = Number(project.hoursPaid);
     const remaining = hoursPaid - consumed;
-    const remainingRatio = hoursPaid > 0 ? remaining / hoursPaid : 0;
+    const remainingRatio = hoursPaid > 0 ? remaining / hoursPaid : null;
     const overdue = project.endDate ? project.endDate < now : false;
 
-    if (remainingRatio < 0.1) {
+    if (remainingRatio !== null && remainingRatio < 0.1) {
       atRisk.push({ projectId: project.id, projectName: project.name, projectCode: project.code, reason: 'Remaining hours below 10%' });
     } else if (overdue) {
       atRisk.push({ projectId: project.id, projectName: project.name, projectCode: project.code, reason: 'Past end date, not completed' });

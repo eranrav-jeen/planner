@@ -28,7 +28,7 @@ export function Dashboard() {
   if (summaryError) {
     return (
       <div>
-        <PageHeader title={t('nav.dashboard')} />
+        <PageHeader title={t('nav.dashboard')} showBack={false} />
         <Card>
           <ErrorState message="Couldn't load dashboard data." onRetry={refetchSummary} />
         </Card>
@@ -38,7 +38,7 @@ export function Dashboard() {
 
   return (
     <div>
-      <PageHeader title={t('nav.dashboard')} />
+      <PageHeader title={t('nav.dashboard')} showBack={false} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader>
