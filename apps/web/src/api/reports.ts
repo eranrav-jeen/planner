@@ -83,6 +83,26 @@ export function useProfitabilityReport(filters: { customerId?: string; status?: 
   });
 }
 
+export interface PlanVsActualRow {
+  projectId: string;
+  projectName: string;
+  projectCode: string;
+  customerName: string;
+  planned: number;
+  actual: number;
+  variance: number;
+  variancePercent: number;
+}
+
+export function usePlanVsActualReport(from: string, to: string, filters: { customerId?: string } = {}) {
+  const params = new URLSearchParams({ from, to });
+  if (filters.customerId) params.set('customerId', filters.customerId);
+  return useQuery({
+    queryKey: ['reports', 'plan-vs-actual', from, to, filters],
+    queryFn: () => api.get<{ rows: PlanVsActualRow[] }>(`/reports/plan-vs-actual?${params.toString()}`),
+  });
+}
+
 export interface PortfolioRow {
   customerId: string;
   customerName: string;

@@ -5,6 +5,7 @@ import { getProjectBurnReport } from './burn.service.js';
 import { getProfitabilityReport } from './profitability.service.js';
 import { getPortfolioReport } from './portfolio.service.js';
 import { getForecastReport } from './forecast.service.js';
+import { getPlanVsActualReport } from './planActual.service.js';
 import { getGanttProjects } from './gantt.service.js';
 import { ApiError } from '../middleware/error.js';
 import { prisma } from '../lib/prisma.js';
@@ -37,6 +38,7 @@ export const EXPORTABLE_REPORTS = [
   'profitability',
   'portfolio',
   'forecast',
+  'plan-vs-actual',
   'gantt',
   'planning',
 ] as const;
@@ -141,6 +143,45 @@ export async function buildExportDefinition(
         ],
         rows,
         totals: { projectName: 'Total', ...totals },
+      };
+    }
+
+    case 'plan-vs-actual': {
+      const from = requireParam(query, 'from');
+      const to = requireParam(query, 'to');
+      const { rows } = await getPlanVsActualReport({
+        from,
+        to,
+        customerId: query.customerId,
+        projectIds: intersectProjectIds(scope, undefined),
+      });
+      const totals = rows.reduce(
+        (acc, r) => ({ planned: acc.planned + r.planned, actual: acc.actual + r.actual }),
+        { planned: 0, actual: 0 },
+      );
+      return {
+        meta: {
+          title: 'Planned vs Actual',
+          generatedAt,
+          filters: { from, to, customerId: query.customerId },
+        },
+        columns: [
+          { header: 'Project', key: 'projectName', width: 26 },
+          { header: 'Code', key: 'projectCode', width: 14 },
+          { header: 'Customer', key: 'customerName', width: 22 },
+          { header: 'Planned', key: 'planned', width: 12, format: 'hours' },
+          { header: 'Actual', key: 'actual', width: 12, format: 'hours' },
+          { header: 'Variance', key: 'variance', width: 12, format: 'hours' },
+          { header: 'Variance %', key: 'variancePercent', width: 12, format: 'percent' },
+        ],
+        rows,
+        totals: {
+          projectName: 'Total',
+          planned: totals.planned,
+          actual: totals.actual,
+          variance: totals.actual - totals.planned,
+          variancePercent: totals.planned > 0 ? (totals.actual - totals.planned) / totals.planned : 0,
+        },
       };
     }
 

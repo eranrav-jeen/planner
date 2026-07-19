@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateQuery } from '../middleware/validate.js';
-import { monthRangeQuerySchema, projectFilterQuerySchema } from '../schemas/report.schema.js';
+import { monthRangeQuerySchema, projectFilterQuerySchema, planActualQuerySchema } from '../schemas/report.schema.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { getUtilizationReport } from '../services/utilization.service.js';
@@ -11,6 +11,7 @@ import { getProfitabilityReport } from '../services/profitability.service.js';
 import { getPortfolioReport } from '../services/portfolio.service.js';
 import { getForecastReport } from '../services/forecast.service.js';
 import { getDashboardSummary } from '../services/summary.service.js';
+import { getPlanVsActualReport } from '../services/planActual.service.js';
 import {
   getAccessScope,
   getAccessibleCustomerIds,
@@ -95,6 +96,18 @@ reportsRouter.get(
     const { from, to } = req.query as unknown as { from: string; to: string };
     const scope = await getAccessScope(req);
     const report = await getForecastReport({ from, to, projectIds: scope?.projectIds });
+    res.json({ data: serializeDecimals(report) });
+  }),
+);
+
+reportsRouter.get(
+  '/plan-vs-actual',
+  validateQuery(planActualQuerySchema),
+  asyncHandler(async (req, res) => {
+    const { from, to, customerId } = req.query as unknown as { from: string; to: string; customerId?: string };
+    const scope = await getAccessScope(req);
+    const projectIds = intersectProjectIds(scope, undefined);
+    const report = await getPlanVsActualReport({ from, to, customerId, projectIds });
     res.json({ data: serializeDecimals(report) });
   }),
 );

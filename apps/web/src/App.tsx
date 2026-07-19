@@ -14,6 +14,7 @@ import { ProjectDetail } from './pages/projects/ProjectDetail';
 import { Planning } from './pages/planning/Planning';
 import { Reports } from './pages/reports/Reports';
 import { GanttPage } from './pages/gantt/Gantt';
+import { Actuals } from './pages/actuals/Actuals';
 import { Settings } from './pages/settings/Settings';
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="planning" element={<Planning />} />
         <Route path="reports" element={<Reports />} />
         <Route path="gantt" element={<GanttPage />} />
+        <Route path="actuals" element={<Actuals />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>

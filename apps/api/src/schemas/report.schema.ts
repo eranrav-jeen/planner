@@ -13,3 +13,9 @@ export const projectFilterQuerySchema = z.object({
   customerId: z.string().uuid().optional(),
   status: z.string().optional(),
 });
+
+export const planActualQuerySchema = z.object({
+  from: monthParam,
+  to: monthParam,
+  customerId: z.string().uuid().optional(),
+});

@@ -8,6 +8,7 @@ import { ProjectBurnReport } from './ProjectBurnReport';
 import { ProfitabilityReport } from './ProfitabilityReport';
 import { PortfolioReport } from './PortfolioReport';
 import { ForecastReport } from './ForecastReport';
+import { PlanVsActualReport } from './PlanVsActualReport';
 
 const tabTrigger =
   'border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted data-[state=active]:border-charcoal data-[state=active]:text-charcoal';
@@ -31,6 +32,9 @@ export function Reports() {
           <Tabs.Trigger value="burn" className={tabTrigger}>
             {t('reports.tabs.burn')}
           </Tabs.Trigger>
+          <Tabs.Trigger value="plan-vs-actual" className={tabTrigger}>
+            {t('reports.tabs.planActual')}
+          </Tabs.Trigger>
           {canSeeProfitability && (
             <Tabs.Trigger value="profitability" className={tabTrigger}>
               {t('reports.tabs.profitability')}
@@ -52,6 +56,9 @@ export function Reports() {
         </Tabs.Content>
         <Tabs.Content value="burn">
           <ProjectBurnReport />
+        </Tabs.Content>
+        <Tabs.Content value="plan-vs-actual">
+          <PlanVsActualReport />
         </Tabs.Content>
         {canSeeProfitability && (
           <Tabs.Content value="profitability">

@@ -9,6 +9,7 @@ export type ExportableReport =
   | 'profitability'
   | 'portfolio'
   | 'forecast'
+  | 'plan-vs-actual'
   | 'gantt'
   | 'planning';
 

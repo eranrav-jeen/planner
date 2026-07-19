@@ -24,6 +24,21 @@ export function decodeOriginalFilename(name: string): string {
   return Buffer.from(name, 'latin1').toString('utf8');
 }
 
+// Attendance/actuals spreadsheet upload. Kept in memory — we parse the buffer
+// immediately and persist the aggregated result, so the raw file isn't retained.
+export const actualsUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const name = decodeOriginalFilename(file.originalname).toLowerCase();
+    if (!name.endsWith('.xls') && !name.endsWith('.xlsx')) {
+      cb(new ApiError(422, 'Upload an Excel file (.xls or .xlsx).'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 export const poUpload = multer({
   storage: multer.diskStorage({
     destination: PO_UPLOAD_DIR,

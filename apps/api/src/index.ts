@@ -15,6 +15,7 @@ import { reportsRouter } from './routes/reports.routes.js';
 import { ganttRouter } from './routes/gantt.routes.js';
 import { exportRouter } from './routes/export.routes.js';
 import { usersRouter } from './routes/users.routes.js';
+import { actualsRouter } from './routes/actuals.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/gantt', ganttRouter);
 app.use('/api/export', exportRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/actuals', actualsRouter);
 
 app.use('/api', notFoundHandler);
 app.use(errorHandler);
