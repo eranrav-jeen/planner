@@ -10,11 +10,13 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ErrorState } from '../../components/ui/error-state';
 import { EmployeeForm } from './EmployeeForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import { formatHours } from '../../lib/format';
 
 export function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const { data: employee, isLoading, isError, refetch } = useEmployee(id);
@@ -25,10 +27,10 @@ export function EmployeeDetail() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (isLoading) {
-    return <div className="text-sm text-muted">Loading...</div>;
+    return <div className="text-sm text-muted">{t('common.loading')}</div>;
   }
   if (isError || !employee) {
-    return <ErrorState message="Couldn't load this employee." onRetry={refetch} />;
+    return <ErrorState message={t('employees.couldNotLoad')} onRetry={refetch} />;
   }
 
   return (
@@ -39,7 +41,7 @@ export function EmployeeDetail() {
           canEdit && (
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => setFormOpen(true)}>
-                <Pencil className="h-4 w-4" /> Edit
+                <Pencil className="h-4 w-4" /> {t('common.edit')}
               </Button>
               <Button
                 variant="secondary"
@@ -48,7 +50,7 @@ export function EmployeeDetail() {
                   setDeleteOpen(true);
                 }}
               >
-                <Trash2 className="h-4 w-4" /> Delete
+                <Trash2 className="h-4 w-4" /> {t('common.delete')}
               </Button>
             </div>
           )
@@ -57,39 +59,39 @@ export function EmployeeDetail() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Details</CardTitle>
+          <CardTitle>{t('employees.details')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
           <p>
-            <span className="text-muted">Email: </span>
+            <span className="text-muted">{t('employees.email')}: </span>
             {employee.email}
           </p>
           <p>
-            <span className="text-muted">Title: </span>
+            <span className="text-muted">{t('employees.jobTitle')}: </span>
             {employee.title || '—'}
           </p>
           <p>
-            <span className="text-muted">Department: </span>
+            <span className="text-muted">{t('employees.department')}: </span>
             {employee.department || '—'}
           </p>
           <p>
-            <span className="text-muted">Employment: </span>
-            {employee.employmentType.replace('_', ' ')}
+            <span className="text-muted">{t('employees.employmentLabel')}: </span>
+            {t(`employment.${employee.employmentType}`)}
           </p>
           <p>
-            <span className="text-muted">Monthly capacity: </span>
+            <span className="text-muted">{t('employees.monthlyCapacity')}: </span>
             {formatHours(employee.monthlyCapacityHours)}
           </p>
           {employee.costRateHourly !== undefined && (
             <p>
-              <span className="text-muted">Cost rate: </span>
+              <span className="text-muted">{t('employees.costRate')}: </span>
               {employee.costRateHourly ?? '—'}
             </p>
           )}
           <p>
-            <span className="text-muted">Status: </span>
+            <span className="text-muted">{t('employees.status')}: </span>
             <Badge status={employee.isActive ? 'active' : 'inactive'}>
-              {employee.isActive ? 'Active' : 'Inactive'}
+              {employee.isActive ? t('common.active') : t('common.inactive')}
             </Badge>
           </p>
         </CardContent>
@@ -97,20 +99,20 @@ export function EmployeeDetail() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Project assignments</CardTitle>
+          <CardTitle>{t('employees.projectAssignments')}</CardTitle>
         </CardHeader>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase text-muted">
-              <th className="px-5 py-3 text-start font-medium">Project</th>
-              <th className="px-5 py-3 text-start font-medium">Role</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colProject')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colRole')}</th>
             </tr>
           </thead>
           <tbody>
             {(!employee.assignments || employee.assignments.length === 0) && (
               <tr>
                 <td colSpan={2} className="px-5 py-6 text-center text-muted">
-                  No assignments yet.
+                  {t('employees.noAssignments')}
                 </td>
               </tr>
             )}
@@ -134,15 +136,15 @@ export function EmployeeDetail() {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete employee"
-        description={`Permanently delete "${employee.firstName} ${employee.lastName}"? This cannot be undone.`}
+        title={t('employees.deleteTitle')}
+        description={t('employees.deleteDescription', { name: `${employee.firstName} ${employee.lastName}` })}
         error={deleteError}
         isSubmitting={deleteEmployee.isPending}
         onConfirm={() =>
           deleteEmployee.mutate(employee.id, {
             onSuccess: () => navigate('/employees'),
             onError: (err) =>
-              setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+              setDeleteError(err instanceof ApiRequestError ? err.message : t('common.failedToDelete')),
           })
         }
       />

@@ -12,11 +12,13 @@ import { TableStatusRow } from '../../components/ui/table-status-row';
 import { Pagination } from '../../components/ui/pagination';
 import { ProjectForm } from './ProjectForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import { formatCurrency, formatHours } from '../../lib/format';
 import type { Project } from '../../api/types';
 
 export function ProjectsList() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
@@ -38,18 +40,18 @@ export function ProjectsList() {
     setDeleteError(null);
     deleteProject.mutate(deleteTarget.id, {
       onSuccess: () => setDeleteTarget(null),
-      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : t('common.failedToDelete')),
     });
   }
 
   return (
     <div>
       <PageHeader
-        title="Projects"
+        title={t('projects.title')}
         actions={
           canEdit && (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus className="h-4 w-4" /> New project
+              <Plus className="h-4 w-4" /> {t('projects.newProject')}
             </Button>
           )
         }
@@ -58,7 +60,7 @@ export function ProjectsList() {
         <div className="relative w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
-            placeholder="Search projects..."
+            placeholder={t('projects.searchPlaceholder')}
             className="ps-9"
             value={search}
             onChange={(e) => {
@@ -75,23 +77,23 @@ export function ProjectsList() {
           }}
           className="w-44"
         >
-          <option value="">All statuses</option>
-          <option value="planning">Planning</option>
-          <option value="active">Active</option>
-          <option value="on_hold">On hold</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="">{t('status.allStatuses')}</option>
+          <option value="planning">{t('status.planning')}</option>
+          <option value="active">{t('status.active')}</option>
+          <option value="on_hold">{t('status.on_hold')}</option>
+          <option value="completed">{t('status.completed')}</option>
+          <option value="cancelled">{t('status.cancelled')}</option>
         </Select>
       </div>
       <Card>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase text-muted">
-              <th className="px-5 py-3 text-start font-medium">Project</th>
-              <th className="px-5 py-3 text-start font-medium">Customer</th>
-              <th className="px-5 py-3 text-start font-medium">Status</th>
-              <th className="px-5 py-3 text-start font-medium">Income</th>
-              <th className="px-5 py-3 text-start font-medium">Hours paid</th>
+              <th className="px-5 py-3 text-start font-medium">{t('projects.colProject')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('projects.colCustomer')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('projects.colStatus')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('projects.colIncome')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('projects.colHoursPaid')}</th>
               {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
@@ -101,7 +103,7 @@ export function ProjectsList() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && data?.items.length === 0}
-              emptyMessage="No projects yet."
+              emptyMessage={t('projects.none')}
               onRetry={refetch}
             />
             {data?.items.map((project) => (
@@ -115,7 +117,7 @@ export function ProjectsList() {
                 </td>
                 <td className="px-5 py-3 text-muted">{project.customer?.name}</td>
                 <td className="px-5 py-3">
-                  <Badge status={project.status}>{project.status.replace('_', ' ')}</Badge>
+                  <Badge status={project.status}>{t(`status.${project.status}`)}</Badge>
                 </td>
                 <td className="px-5 py-3 tabular-nums">
                   {formatCurrency(Number(project.incomeAmount), project.currency)}
@@ -151,8 +153,8 @@ export function ProjectsList() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete project"
-        description={`Permanently delete "${deleteTarget?.name}"? This removes its team assignments and monthly allocations too. This cannot be undone.`}
+        title={t('projects.deleteTitle')}
+        description={t('projects.deleteDescription', { name: deleteTarget?.name ?? '' })}
         error={deleteError}
         isSubmitting={deleteProject.isPending}
         onConfirm={handleDelete}

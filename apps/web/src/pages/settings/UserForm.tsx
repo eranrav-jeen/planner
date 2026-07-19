@@ -5,6 +5,7 @@ import { useProjects } from '../../api/projects';
 import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
+import { useLanguage } from '../../lib/i18n';
 
 export function UserForm({
   open,
@@ -21,6 +22,7 @@ export function UserForm({
   isSubmitting: boolean;
   error?: string | null;
 }) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>(user?.role ?? 'VIEWER');
@@ -64,12 +66,12 @@ export function UserForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={user ? 'Edit user' : 'New user'}>
+    <Dialog open={open} onOpenChange={onOpenChange} title={user ? t('settings.form.editTitle') : t('settings.form.newTitle')}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Email">
+        <Field label={t('settings.form.email')}>
           <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label={user ? 'New password (leave blank to keep current)' : 'Password'}>
+        <Field label={user ? t('settings.form.newPassword') : t('settings.form.password')}>
           <Input
             type="password"
             required={!user}
@@ -78,17 +80,17 @@ export function UserForm({
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
-        <Field label="Role">
+        <Field label={t('settings.form.role')}>
           <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            <option value="ADMIN">Admin</option>
-            <option value="MANAGER">Manager</option>
-            <option value="VIEWER">Viewer</option>
+            <option value="ADMIN">{t('role.admin')}</option>
+            <option value="MANAGER">{t('role.manager')}</option>
+            <option value="VIEWER">{t('role.viewer')}</option>
           </Select>
         </Field>
         {user && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-            Active
+            {t('settings.form.active')}
           </label>
         )}
         {role !== 'ADMIN' && (
@@ -99,11 +101,11 @@ export function UserForm({
                 checked={isRestricted}
                 onChange={(e) => setIsRestricted(e.target.checked)}
               />
-              Restrict to specific projects
+              {t('settings.form.restrictToProjects')}
             </label>
             {isRestricted && (
               <div className="max-h-64 space-y-3 overflow-y-auto">
-                {items.length === 0 && <p className="text-sm text-muted">No projects yet.</p>}
+                {items.length === 0 && <p className="text-sm text-muted">{t('settings.form.noProjectsYet')}</p>}
                 {Array.from(projectsByCustomer.values()).map((group) => (
                   <div key={group.customerName}>
                     <div className="mb-1 text-xs font-medium uppercase text-muted">{group.customerName}</div>
@@ -128,10 +130,10 @@ export function UserForm({
         {error && <p className="text-sm text-coral">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>

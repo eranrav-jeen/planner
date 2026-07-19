@@ -5,6 +5,7 @@ import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 
 const emptyInput: EmployeeInput = {
   firstName: '',
@@ -32,6 +33,7 @@ export function EmployeeForm({
   onSubmit: (input: EmployeeInput) => void;
   isSubmitting: boolean;
 }) {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const canSeeCost = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [form, setForm] = useState<EmployeeInput>(employee ?? emptyInput);
@@ -42,39 +44,43 @@ export function EmployeeForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={employee ? 'Edit employee' : 'New employee'}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={employee ? t('employees.form.editTitle') : t('employees.form.newTitle')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="First name">
+          <Field label={t('employees.form.firstName')}>
             <Input required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
           </Field>
-          <Field label="Last name">
+          <Field label={t('employees.form.lastName')}>
             <Input required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
           </Field>
         </div>
-        <Field label="Email">
+        <Field label={t('employees.form.email')}>
           <Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Title">
+          <Field label={t('employees.form.title')}>
             <Input value={form.title ?? ''} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </Field>
-          <Field label="Department">
+          <Field label={t('employees.form.department')}>
             <Input value={form.department ?? ''} onChange={(e) => setForm({ ...form, department: e.target.value })} />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Employment type">
+          <Field label={t('employees.form.employmentType')}>
             <Select
               value={form.employmentType}
               onChange={(e) => setForm({ ...form, employmentType: e.target.value as EmploymentType })}
             >
-              <option value="full_time">Full time</option>
-              <option value="part_time">Part time</option>
-              <option value="contractor">Contractor</option>
+              <option value="full_time">{t('employment.full_time')}</option>
+              <option value="part_time">{t('employment.part_time')}</option>
+              <option value="contractor">{t('employment.contractor')}</option>
             </Select>
           </Field>
-          <Field label="Monthly capacity (hours)">
+          <Field label={t('employees.form.monthlyCapacity')}>
             <Input
               type="number"
               min={0}
@@ -84,7 +90,7 @@ export function EmployeeForm({
           </Field>
         </div>
         {canSeeCost && (
-          <Field label="Cost rate (hourly)">
+          <Field label={t('employees.form.costRate')}>
             <Input
               type="number"
               min={0}
@@ -101,14 +107,14 @@ export function EmployeeForm({
             checked={form.isActive}
             onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
           />
-          Active
+          {t('employees.form.active')}
         </label>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>

@@ -20,15 +20,15 @@ interface ProjectForecastRow {
   total: number;
 }
 
-const METHOD_LABELS: Record<string, string> = {
-  time_and_materials: 'T&M (blended rate)',
-  fixed_price_weighted: 'Fixed price (hours-weighted)',
-  fixed_price_even: 'Fixed price (even spread)',
-  none: 'No data',
+const METHOD_KEYS: Record<string, string> = {
+  time_and_materials: 'reports.forecast.method.tm',
+  fixed_price_weighted: 'reports.forecast.method.fixedWeighted',
+  fixed_price_even: 'reports.forecast.method.fixedEven',
+  none: 'reports.forecast.method.none',
 };
 
 export function ForecastReport() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(6);
   const to = addMonthsToKey(windowStart, windowSize - 1);
@@ -60,7 +60,7 @@ export function ForecastReport() {
 
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Forecasted revenue by month</CardTitle>
+          <CardTitle>{t('reports.forecast.byMonth')}</CardTitle>
         </CardHeader>
         <CardContent>
           {!isLoading && data && <RevenueChart data={data.totalsByMonth} language={language} />}
@@ -71,10 +71,10 @@ export function ForecastReport() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <SortHeader label="Project" sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Billing type" sortKey="billingType" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Method" sortKey="method" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Forecasted revenue" sortKey="total" activeKey={sortKey} dir={sortDir} onClick={toggle} align="end" />
+              <SortHeader label={t('reports.forecast.colProject')} sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.forecast.colBillingType')} sortKey="billingType" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.forecast.colMethod')} sortKey="method" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.forecast.colForecastedRevenue')} sortKey="total" activeKey={sortKey} dir={sortDir} onClick={toggle} align="end" />
             </tr>
           </thead>
           <tbody>
@@ -84,8 +84,10 @@ export function ForecastReport() {
                 <td className="px-5 py-2.5 font-medium">
                   {row.projectName} <span className="text-muted">({row.projectCode})</span>
                 </td>
-                <td className="px-3 py-2.5 text-center text-muted">{row.billingType.replace(/_/g, ' ')}</td>
-                <td className="px-3 py-2.5 text-center text-xs text-muted">{METHOD_LABELS[row.method] ?? row.method}</td>
+                <td className="px-3 py-2.5 text-center text-muted">{t(`billing.${row.billingType}`)}</td>
+                <td className="px-3 py-2.5 text-center text-xs text-muted">
+                  {t(METHOD_KEYS[row.method] ?? row.method)}
+                </td>
                 <td className="px-3 py-2.5 text-end tabular-nums">{formatCurrency(row.total)}</td>
               </tr>
             ))}
@@ -93,7 +95,7 @@ export function ForecastReport() {
           <tfoot>
             <tr className="border-t-2 border-charcoal/20 font-semibold">
               <td className="px-5 py-3" colSpan={3}>
-                Total
+                {t('reports.forecast.total')}
               </td>
               <td className="px-3 py-3 text-end tabular-nums">{formatCurrency(grandTotal)}</td>
             </tr>

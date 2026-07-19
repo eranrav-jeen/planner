@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../lib/i18n';
 
 export function PageHeader({
   title,
@@ -12,6 +13,7 @@ export function PageHeader({
   showBack?: boolean;
 }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   return (
     <div className="mb-6 flex items-center justify-between">
@@ -20,7 +22,7 @@ export function PageHeader({
           <button
             type="button"
             onClick={() => navigate(-1)}
-            aria-label="Back"
+            aria-label={t('common.back')}
             className="rounded-md p-1.5 text-muted hover:bg-bg hover:text-charcoal"
           >
             <ArrowLeft className="h-5 w-5" />

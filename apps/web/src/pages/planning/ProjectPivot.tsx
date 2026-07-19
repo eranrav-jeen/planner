@@ -4,6 +4,7 @@ import type { MonthlyAllocation } from '../../api/allocations';
 import type { CapacityOverride } from '../../api/capacityOverrides';
 import { cellKey, hoursToPercent, percentToHours, roundHours, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
+import { useLanguage } from '../../lib/i18n';
 
 export function ProjectPivot({
   projectId,
@@ -28,6 +29,7 @@ export function ProjectPivot({
   canEdit: boolean;
   inputMode: InputMode;
 }) {
+  const { t } = useLanguage();
   const allocationMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const a of allocations) {
@@ -61,7 +63,7 @@ export function ProjectPivot({
     <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-border text-xs uppercase text-muted">
-          <th className="px-5 py-3 text-start font-medium">Employee</th>
+          <th className="px-5 py-3 text-start font-medium">{t('planning.colEmployee')}</th>
           {months.map((m) => (
             <th key={m} className="px-3 py-3 text-center font-medium">
               {monthShortLabel(m, language)}
@@ -73,7 +75,7 @@ export function ProjectPivot({
         {assignments.length === 0 && (
           <tr>
             <td colSpan={months.length + 1} className="px-5 py-6 text-center text-muted">
-              No team members on this project yet.
+              {t('planning.noTeamMembers')}
             </td>
           </tr>
         )}
@@ -116,7 +118,7 @@ export function ProjectPivot({
       </tbody>
       <tfoot>
         <tr className="border-t-2 border-charcoal/20 font-semibold">
-          <td className="px-5 py-3">Total</td>
+          <td className="px-5 py-3">{t('planning.total')}</td>
           {totalsByMonth.map((total, i) => (
             <td key={months[i]} className="px-3 py-3 text-center tabular-nums">
               {total}h

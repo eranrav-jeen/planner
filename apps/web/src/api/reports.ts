@@ -128,10 +128,21 @@ export interface DashboardSummary {
   totalContractedIncome: number;
   totalHoursPaid: number;
   totalHoursConsumed: number;
-  atRiskProjects: { projectId: string; projectName: string; projectCode: string; reason: string }[];
+  atRiskProjects: {
+    projectId: string;
+    projectName: string;
+    projectCode: string;
+    reasonKey: string;
+    reasonParams?: Record<string, string | number>;
+  }[];
   licensedCustomerCount: number;
   totalLicenseRevenue: number;
-  licenseAttention: { customerId: string; customerName: string; reason: string }[];
+  licenseAttention: {
+    customerId: string;
+    customerName: string;
+    reasonKey: string;
+    reasonParams?: Record<string, string | number>;
+  }[];
 }
 
 export function useDashboardSummary() {

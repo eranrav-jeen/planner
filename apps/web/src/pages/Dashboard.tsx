@@ -30,7 +30,7 @@ export function Dashboard() {
       <div>
         <PageHeader title={t('nav.dashboard')} showBack={false} />
         <Card>
-          <ErrorState message="Couldn't load dashboard data." onRetry={refetchSummary} />
+          <ErrorState message={t('dashboard.couldNotLoad')} onRetry={refetchSummary} />
         </Card>
       </div>
     );
@@ -42,7 +42,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader>
-            <CardTitle>Active projects</CardTitle>
+            <CardTitle>{t('dashboard.activeProjects')}</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
             {summary?.activeProjectCount ?? '—'}
@@ -50,20 +50,23 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Contracted income</CardTitle>
+            <CardTitle>{t('dashboard.contractedIncome')}</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
             {summary ? formatCurrency(summary.totalContractedIncome) : '—'}
             {summary && summary.activeLicenseRevenue > 0 && (
               <p className="text-xs font-normal text-muted">
-                {formatCurrency(summary.totalIncome)} projects + {formatCurrency(summary.activeLicenseRevenue)} active licenses
+                {t('dashboard.contractedIncomeBreakdown', {
+                  projects: formatCurrency(summary.totalIncome),
+                  licenses: formatCurrency(summary.activeLicenseRevenue),
+                })}
               </p>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Paid hours vs consumed</CardTitle>
+            <CardTitle>{t('dashboard.paidVsConsumed')}</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
             {summary ? (
@@ -78,7 +81,7 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Projects at risk</CardTitle>
+            <CardTitle>{t('dashboard.projectsAtRisk')}</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
             {summary?.atRiskProjects.length ?? '—'}
@@ -86,14 +89,15 @@ export function Dashboard() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Licensed customers</CardTitle>
+            <CardTitle>{t('dashboard.licensedCustomers')}</CardTitle>
           </CardHeader>
           <CardContent className="text-2xl font-semibold tabular-nums">
             {summary ? (
               <>
                 {summary.licensedCustomerCount}{' '}
                 <span className="text-base font-normal text-muted">
-                  / {formatCurrency(summary.totalLicenseRevenue)}/yr
+                  / {formatCurrency(summary.totalLicenseRevenue)}
+                  {t('dashboard.perYear')}
                 </span>
               </>
             ) : (
@@ -106,7 +110,7 @@ export function Dashboard() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue forecast (next {HEATMAP_MONTHS} months)</CardTitle>
+            <CardTitle>{t('dashboard.revenueForecast', { months: HEATMAP_MONTHS })}</CardTitle>
           </CardHeader>
           <CardContent>
             {forecast && <RevenueChart data={forecast.totalsByMonth} language={language} />}
@@ -115,11 +119,11 @@ export function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Projects at risk</CardTitle>
+            <CardTitle>{t('dashboard.projectsAtRisk')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {!summary || summary.atRiskProjects.length === 0 ? (
-              <p className="px-5 py-6 text-center text-sm text-muted">No projects at risk.</p>
+              <p className="px-5 py-6 text-center text-sm text-muted">{t('dashboard.noProjectsAtRisk')}</p>
             ) : (
               <ul className="divide-y divide-border">
                 {summary.atRiskProjects.map((p) => (
@@ -129,7 +133,7 @@ export function Dashboard() {
                       <div className="font-medium">
                         {p.projectName} <span className="text-muted">({p.projectCode})</span>
                       </div>
-                      <div className="text-muted">{p.reason}</div>
+                      <div className="text-muted">{t(p.reasonKey, p.reasonParams)}</div>
                     </div>
                   </li>
                 ))}
@@ -141,11 +145,11 @@ export function Dashboard() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Licenses needing attention</CardTitle>
+          <CardTitle>{t('dashboard.licensesNeedingAttention')}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {!summary || summary.licenseAttention.length === 0 ? (
-            <p className="px-5 py-6 text-center text-sm text-muted">No license issues.</p>
+            <p className="px-5 py-6 text-center text-sm text-muted">{t('dashboard.noLicenseIssues')}</p>
           ) : (
             <ul className="divide-y divide-border">
               {summary.licenseAttention.map((l) => (
@@ -155,7 +159,7 @@ export function Dashboard() {
                     <Link to={`/customers/${l.customerId}`} className="font-medium hover:underline">
                       {l.customerName}
                     </Link>
-                    <div className="text-muted">{l.reason}</div>
+                    <div className="text-muted">{t(l.reasonKey, l.reasonParams)}</div>
                   </div>
                 </li>
               ))}
@@ -166,13 +170,13 @@ export function Dashboard() {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle>Team utilization heatmap</CardTitle>
+          <CardTitle>{t('dashboard.teamUtilizationHeatmap')}</CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase text-muted">
-                <th className="px-5 py-3 text-start font-medium">Employee</th>
+                <th className="px-5 py-3 text-start font-medium">{t('dashboard.employee')}</th>
                 {months.map((m) => (
                   <th key={m} className="px-3 py-3 text-center font-medium">
                     {monthShortLabel(m, language)}
@@ -184,7 +188,7 @@ export function Dashboard() {
               {employeeNames.length === 0 && (
                 <tr>
                   <td colSpan={months.length + 1} className="px-5 py-6 text-center text-muted">
-                    No data yet.
+                    {t('dashboard.noDataYet')}
                   </td>
                 </tr>
               )}

@@ -5,6 +5,7 @@ import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select, Textarea } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { AI_MODEL_GROUPS, ALL_CURATED_MODELS, LICENSE_PLATFORM_VERSIONS } from '../../lib/licenseOptions';
+import { useLanguage } from '../../lib/i18n';
 
 function toDateInput(value?: string | null) {
   return value ? value.slice(0, 10) : '';
@@ -38,6 +39,7 @@ export function CustomerForm({
   onSubmit: (input: CustomerInput) => void;
   isSubmitting: boolean;
 }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState<CustomerInput>(customer ?? emptyInput);
   const [selectedModels, setSelectedModels] = useState<Set<string>>(
     () => new Set((customer?.licenseModelsInstalled ?? []).filter((m) => ALL_CURATED_MODELS.has(m))),
@@ -65,9 +67,13 @@ export function CustomerForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={customer ? 'Edit customer' : 'New customer'}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={customer ? t('customers.form.editTitle') : t('customers.form.newTitle')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Name">
+        <Field label={t('customers.form.name')}>
           <Input
             required
             value={form.name}
@@ -75,13 +81,13 @@ export function CustomerForm({
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Contact name">
+          <Field label={t('customers.form.contactName')}>
             <Input
               value={form.contactName ?? ''}
               onChange={(e) => setForm({ ...form, contactName: e.target.value })}
             />
           </Field>
-          <Field label="Contact email">
+          <Field label={t('customers.form.contactEmail')}>
             <Input
               type="email"
               value={form.contactEmail ?? ''}
@@ -89,17 +95,17 @@ export function CustomerForm({
             />
           </Field>
         </div>
-        <Field label="Status">
+        <Field label={t('customers.form.status')}>
           <Select
             value={form.status}
             onChange={(e) => setForm({ ...form, status: e.target.value as CustomerStatus })}
           >
-            <option value="active">Active</option>
-            <option value="prospect">Prospect</option>
-            <option value="inactive">Inactive</option>
+            <option value="active">{t('status.active')}</option>
+            <option value="prospect">{t('status.prospect')}</option>
+            <option value="inactive">{t('status.inactive')}</option>
           </Select>
         </Field>
-        <Field label="Notes">
+        <Field label={t('customers.form.notes')}>
           <Textarea
             rows={3}
             value={form.notes ?? ''}
@@ -114,13 +120,13 @@ export function CustomerForm({
               checked={form.hasLicense}
               onChange={(e) => setForm({ ...form, hasLicense: e.target.checked })}
             />
-            Has Jeen Solution OS license
+            {t('customers.form.hasLicense')}
           </label>
 
           {form.hasLicense && (
             <>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Annual license amount">
+                <Field label={t('customers.form.annualLicenseAmount')}>
                   <Input
                     type="number"
                     min={0}
@@ -140,19 +146,19 @@ export function CustomerForm({
                       checked={form.licensePaid}
                       onChange={(e) => setForm({ ...form, licensePaid: e.target.checked })}
                     />
-                    Current period paid
+                    {t('customers.form.currentPeriodPaid')}
                   </label>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Current period start">
+                <Field label={t('customers.form.periodStart')}>
                   <Input
                     type="date"
                     value={toDateInput(form.licensePeriodStart)}
                     onChange={(e) => setForm({ ...form, licensePeriodStart: e.target.value || null })}
                   />
                 </Field>
-                <Field label="Current period end">
+                <Field label={t('customers.form.periodEnd')}>
                   <Input
                     type="date"
                     value={toDateInput(form.licensePeriodEnd)}
@@ -160,12 +166,12 @@ export function CustomerForm({
                   />
                 </Field>
               </div>
-              <Field label="Platform version">
+              <Field label={t('customers.form.platformVersion')}>
                 <Select
                   value={form.licensePlatformVersion ?? ''}
                   onChange={(e) => setForm({ ...form, licensePlatformVersion: e.target.value || null })}
                 >
-                  <option value="">Unknown</option>
+                  <option value="">{t('customers.form.unknown')}</option>
                   {LICENSE_PLATFORM_VERSIONS.map((v) => (
                     <option key={v} value={v}>
                       {v}
@@ -174,7 +180,9 @@ export function CustomerForm({
                 </Select>
               </Field>
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-charcoal">Models installed</span>
+                <span className="mb-1.5 block text-sm font-medium text-charcoal">
+                  {t('customers.form.modelsInstalled')}
+                </span>
                 <div className="space-y-3 rounded-lg border border-border p-3">
                   {AI_MODEL_GROUPS.map((group) => (
                     <div key={group.vendor}>
@@ -193,7 +201,7 @@ export function CustomerForm({
                       </div>
                     </div>
                   ))}
-                  <Field label="Other models (comma-separated)">
+                  <Field label={t('customers.form.otherModels')}>
                     <Input
                       value={otherModelsText}
                       onChange={(e) => setOtherModelsText(e.target.value)}
@@ -208,10 +216,10 @@ export function CustomerForm({
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>

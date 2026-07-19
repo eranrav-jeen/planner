@@ -23,7 +23,7 @@ import { cn } from '../../lib/utils';
 const DEFAULT_WINDOW_SIZE = 7;
 
 export function Planning() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
@@ -95,7 +95,7 @@ export function Planning() {
   return (
     <div>
       <PageHeader
-        title="Planning"
+        title={t('planning.title')}
         actions={
           <div className="flex items-center gap-2">
             <ExportButton
@@ -110,7 +110,7 @@ export function Planning() {
             />
             {canEdit && (
               <Button onClick={handleSave} disabled={edited.size === 0 || bulkUpsert.isPending}>
-                <Save className="h-4 w-4" /> Save {edited.size > 0 && `(${edited.size})`}
+                <Save className="h-4 w-4" /> {t('planning.save')} {edited.size > 0 && `(${edited.size})`}
               </Button>
             )}
           </div>
@@ -127,7 +127,7 @@ export function Planning() {
               pivot === 'employee' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
             )}
           >
-            By employee
+            {t('planning.byEmployee')}
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@ export function Planning() {
               pivot === 'project' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
             )}
           >
-            By project
+            {t('planning.byProject')}
           </button>
           <button
             type="button"
@@ -147,7 +147,7 @@ export function Planning() {
               pivot === 'customer' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
             )}
           >
-            By customer
+            {t('planning.byCustomer')}
           </button>
         </div>
 
@@ -160,7 +160,7 @@ export function Planning() {
               inputMode === 'hours' ? 'bg-charcoal text-white' : 'text-charcoal/70 hover:bg-bg',
             )}
           >
-            Hours
+            {t('planning.hours')}
           </button>
           <button
             type="button"
@@ -189,7 +189,7 @@ export function Planning() {
             </Select>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted">Window:</span>
+            <span className="text-sm text-muted">{t('planning.window')}</span>
             <button
               type="button"
               onClick={() => setWindowStart((s) => addMonthsToKey(s, -1))}
@@ -214,7 +214,7 @@ export function Planning() {
             >
               {[3, 6, 7, 9, 12].map((n) => (
                 <option key={n} value={n}>
-                  {n} months
+                  {t('planning.months', { n })}
                 </option>
               ))}
             </Select>
@@ -224,7 +224,7 @@ export function Planning() {
 
       <Card className="overflow-x-auto">
         {allocationsError ? (
-          <ErrorState message="Couldn't load the planning grid." onRetry={refetchAllocations} />
+          <ErrorState message={t('planning.couldNotLoad')} onRetry={refetchAllocations} />
         ) : pivot === 'employee' ? (
           <EmployeePivot
             employees={employees}
@@ -268,7 +268,7 @@ export function Planning() {
       {canEdit && (
         <Card className="mt-4">
           <div className="flex flex-wrap items-end gap-3 p-4">
-            <span className="text-sm font-medium text-charcoal">Copy-forward:</span>
+            <span className="text-sm font-medium text-charcoal">{t('planning.copyForward')}</span>
             <Select
               className="w-40"
               value={copySourceMonth}
@@ -280,7 +280,7 @@ export function Planning() {
                 </option>
               ))}
             </Select>
-            <span className="text-sm text-muted">to next</span>
+            <span className="text-sm text-muted">{t('planning.toNext')}</span>
             <input
               type="number"
               min={1}
@@ -289,9 +289,9 @@ export function Planning() {
               onChange={(e) => setCopyTargetCount(Number(e.target.value))}
               className="w-16 rounded-lg border border-border bg-surface px-2 py-1.5 text-center text-sm outline-none focus:border-charcoal"
             />
-            <span className="text-sm text-muted">months</span>
+            <span className="text-sm text-muted">{t('planning.monthsSuffix')}</span>
             <Button variant="secondary" size="sm" onClick={handleCopyForward} disabled={copyForward.isPending}>
-              <Copy className="h-4 w-4" /> Apply
+              <Copy className="h-4 w-4" /> {t('planning.apply')}
             </Button>
           </div>
         </Card>

@@ -1,7 +1,7 @@
 import { Minus, Plus } from 'lucide-react';
 import { Select } from '../../components/ui/input';
 import { addMonthsToKey, monthShortLabel } from '../../lib/months';
-import type { Language } from '../../lib/i18n';
+import { useLanguage, type Language } from '../../lib/i18n';
 
 export function MonthRangeControl({
   windowStart,
@@ -16,10 +16,11 @@ export function MonthRangeControl({
   onChangeSize: (next: number) => void;
   language: Language;
 }) {
+  const { t } = useLanguage();
   const to = addMonthsToKey(windowStart, windowSize - 1);
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted">Range:</span>
+      <span className="text-sm text-muted">{t('reports.range')}</span>
       <button
         type="button"
         onClick={() => onChangeStart(addMonthsToKey(windowStart, -1))}
@@ -40,7 +41,7 @@ export function MonthRangeControl({
       <Select className="w-24" value={windowSize} onChange={(e) => onChangeSize(Number(e.target.value))}>
         {[3, 6, 7, 9, 12].map((n) => (
           <option key={n} value={n}>
-            {n} months
+            {t('planning.months', { n })}
           </option>
         ))}
       </Select>

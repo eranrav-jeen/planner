@@ -1,6 +1,7 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { useAuth } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import { UtilizationReport } from './UtilizationReport';
 import { DemandCapacityReport } from './DemandCapacityReport';
 import { ProjectBurnReport } from './ProjectBurnReport';
@@ -13,32 +14,33 @@ const tabTrigger =
 
 export function Reports() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const canSeeProfitability = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   return (
     <div>
-      <PageHeader title="Reports" />
+      <PageHeader title={t('reports.title')} />
       <Tabs.Root defaultValue="utilization">
         <Tabs.List className="mb-4 flex overflow-x-auto border-b border-border">
           <Tabs.Trigger value="utilization" className={tabTrigger}>
-            Employee utilization
+            {t('reports.tabs.utilization')}
           </Tabs.Trigger>
           <Tabs.Trigger value="demand-capacity" className={tabTrigger}>
-            Demand vs capacity
+            {t('reports.tabs.demandCapacity')}
           </Tabs.Trigger>
           <Tabs.Trigger value="burn" className={tabTrigger}>
-            Project burn
+            {t('reports.tabs.burn')}
           </Tabs.Trigger>
           {canSeeProfitability && (
             <Tabs.Trigger value="profitability" className={tabTrigger}>
-              Profitability
+              {t('reports.tabs.profitability')}
             </Tabs.Trigger>
           )}
           <Tabs.Trigger value="portfolio" className={tabTrigger}>
-            Customer portfolio
+            {t('reports.tabs.portfolio')}
           </Tabs.Trigger>
           <Tabs.Trigger value="forecast" className={tabTrigger}>
-            Revenue forecast
+            {t('reports.tabs.forecast')}
           </Tabs.Trigger>
         </Tabs.List>
 

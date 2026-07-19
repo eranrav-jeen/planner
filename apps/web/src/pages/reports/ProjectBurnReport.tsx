@@ -9,9 +9,11 @@ import { useSort } from '../../lib/useSort';
 import { formatHours, formatPercent } from '../../lib/format';
 import { ExportButton } from './ExportButton';
 import { TableStatusRow } from '../../components/ui/table-status-row';
+import { useLanguage } from '../../lib/i18n';
 import type { ProjectBurnRow } from '../../api/reports';
 
 export function ProjectBurnReport() {
+  const { t } = useLanguage();
   const [customerId, setCustomerId] = useState('');
   const [status, setStatus] = useState('');
   const { data: customersData } = useCustomers();
@@ -31,7 +33,7 @@ export function ProjectBurnReport() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-3">
           <Select className="w-52" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-            <option value="">All customers</option>
+            <option value="">{t('reports.allCustomers')}</option>
             {customersData?.items.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -39,12 +41,12 @@ export function ProjectBurnReport() {
             ))}
           </Select>
           <Select className="w-40" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="planning">Planning</option>
-            <option value="active">Active</option>
-            <option value="on_hold">On hold</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="">{t('status.allStatuses')}</option>
+            <option value="planning">{t('status.planning')}</option>
+            <option value="active">{t('status.active')}</option>
+            <option value="on_hold">{t('status.on_hold')}</option>
+            <option value="completed">{t('status.completed')}</option>
+            <option value="cancelled">{t('status.cancelled')}</option>
           </Select>
         </div>
         <ExportButton
@@ -56,14 +58,14 @@ export function ProjectBurnReport() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <SortHeader label="Project" sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Customer" sortKey="customerName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Paid" sortKey="hoursPaid" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Consumed" sortKey="consumed" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Remaining" sortKey="remaining" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="% used" sortKey="percentConsumed" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="End date" sortKey="endDate" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colProject')} sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.burn.colCustomer')} sortKey="customerName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.burn.colStatus')} sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colPaid')} sortKey="hoursPaid" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colConsumed')} sortKey="consumed" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colRemaining')} sortKey="remaining" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colPercentUsed')} sortKey="percentConsumed" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.burn.colEndDate')} sortKey="endDate" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
             </tr>
           </thead>
           <tbody>
@@ -72,7 +74,7 @@ export function ProjectBurnReport() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
-              emptyMessage="No projects match these filters."
+              emptyMessage={t('reports.burn.none')}
               onRetry={refetch}
             />
             {sorted.map((row) => (
@@ -82,7 +84,7 @@ export function ProjectBurnReport() {
                 </td>
                 <td className="px-3 py-2.5 text-muted">{row.customerName}</td>
                 <td className="px-3 py-2.5 text-center">
-                  <Badge status={row.status}>{row.status.replace('_', ' ')}</Badge>
+                  <Badge status={row.status}>{t(`status.${row.status}`)}</Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(row.hoursPaid)}</td>
                 <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(row.consumed)}</td>
@@ -99,7 +101,7 @@ export function ProjectBurnReport() {
           <tfoot>
             <tr className="border-t-2 border-charcoal/20 font-semibold">
               <td className="px-5 py-3" colSpan={3}>
-                Total
+                {t('reports.burn.total')}
               </td>
               <td className="px-3 py-3 text-center tabular-nums">{formatHours(totals.hoursPaid)}</td>
               <td className="px-3 py-3 text-center tabular-nums">{formatHours(totals.consumed)}</td>

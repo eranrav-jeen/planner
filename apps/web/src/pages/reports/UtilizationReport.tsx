@@ -16,7 +16,7 @@ import { TableStatusRow } from '../../components/ui/table-status-row';
 import type { UtilizationRow } from '../../api/reports';
 
 export function UtilizationReport() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(6);
   const [employeeId, setEmployeeId] = useState('');
@@ -38,7 +38,7 @@ export function UtilizationReport() {
             language={language}
           />
           <Select className="w-48" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-            <option value="">All employees</option>
+            <option value="">{t('reports.allEmployees')}</option>
             {employeesData?.items.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.firstName} {e.lastName}
@@ -52,11 +52,11 @@ export function UtilizationReport() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <SortHeader label="Employee" sortKey="employeeName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Month" sortKey="month" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Planned" sortKey="plannedHours" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Capacity" sortKey="capacityHours" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Utilization" sortKey="utilization" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.utilization.colEmployee')} sortKey="employeeName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.utilization.colMonth')} sortKey="month" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.utilization.colPlanned')} sortKey="plannedHours" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.utilization.colCapacity')} sortKey="capacityHours" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.utilization.colUtilization')} sortKey="utilization" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
             </tr>
           </thead>
           <tbody>
@@ -65,7 +65,7 @@ export function UtilizationReport() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
-              emptyMessage="No allocations in this range."
+              emptyMessage={t('reports.utilization.noData')}
               onRetry={refetch}
             />
             {sorted.map((row) => (
@@ -82,14 +82,14 @@ export function UtilizationReport() {
           </tbody>
           {data && data.totalsByMonth.length > 0 && (
             <tfoot>
-              {data.totalsByMonth.map((t) => (
-                <tr key={t.month} className="border-t border-charcoal/20 font-semibold">
-                  <td className="px-5 py-2.5">Team total</td>
-                  <td className="px-3 py-2.5 text-center text-muted">{t.month}</td>
-                  <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(t.plannedHours)}</td>
-                  <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(t.capacityHours)}</td>
-                  <td className={cn('px-3 py-2.5 text-center tabular-nums', utilizationClass(t.utilization))}>
-                    {formatPercent(t.utilization)}
+              {data.totalsByMonth.map((row) => (
+                <tr key={row.month} className="border-t border-charcoal/20 font-semibold">
+                  <td className="px-5 py-2.5">{t('reports.utilization.teamTotal')}</td>
+                  <td className="px-3 py-2.5 text-center text-muted">{row.month}</td>
+                  <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(row.plannedHours)}</td>
+                  <td className="px-3 py-2.5 text-center tabular-nums">{formatHours(row.capacityHours)}</td>
+                  <td className={cn('px-3 py-2.5 text-center tabular-nums', utilizationClass(row.utilization))}>
+                    {formatPercent(row.utilization)}
                   </td>
                 </tr>
               ))}

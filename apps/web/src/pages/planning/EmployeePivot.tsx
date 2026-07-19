@@ -7,6 +7,7 @@ import type { AssignmentRow } from '../../api/assignments';
 import { cellKey, hoursToPercent, percentToHours, roundHours, utilizationClass, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../lib/i18n';
 
 export function EmployeePivot({
   employees,
@@ -31,6 +32,7 @@ export function EmployeePivot({
   canEdit: boolean;
   inputMode: InputMode;
 }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const allocationMap = useMemo(() => {
@@ -93,7 +95,7 @@ export function EmployeePivot({
     <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-border text-xs uppercase text-muted">
-          <th className="px-5 py-3 text-start font-medium">Employee</th>
+          <th className="px-5 py-3 text-start font-medium">{t('planning.colEmployee')}</th>
           {months.map((m) => (
             <th key={m} className="px-3 py-3 text-center font-medium">
               {monthShortLabel(m, language)}
@@ -135,7 +137,7 @@ export function EmployeePivot({
                 (projects.length === 0 ? (
                   <tr key={`${employee.id}-empty`} className="border-b border-border bg-bg/60">
                     <td colSpan={months.length + 1} className="px-5 py-2 ps-10 text-xs text-muted">
-                      No project assignments.
+                      {t('planning.noProjectAssignments')}
                     </td>
                   </tr>
                 ) : (
@@ -181,7 +183,7 @@ export function EmployeePivot({
       </tbody>
       <tfoot>
         <tr className="border-t-2 border-charcoal/20 font-semibold">
-          <td className="px-5 py-3">Team total</td>
+          <td className="px-5 py-3">{t('planning.teamTotal')}</td>
           {months.map((m, i) => (
             <td key={m} className="px-3 py-3 text-center tabular-nums">
               {teamPlannedByMonth[i]}h <span className="font-normal text-muted">/ {teamCapacityByMonth[i]}h</span>

@@ -12,10 +12,12 @@ import { TableStatusRow } from '../../components/ui/table-status-row';
 import { Pagination } from '../../components/ui/pagination';
 import { CustomerForm } from './CustomerForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import type { Customer } from '../../api/types';
 
 export function CustomersList() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
@@ -37,18 +39,18 @@ export function CustomersList() {
     setDeleteError(null);
     deleteCustomer.mutate(deleteTarget.id, {
       onSuccess: () => setDeleteTarget(null),
-      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : t('common.failedToDelete')),
     });
   }
 
   return (
     <div>
       <PageHeader
-        title="Customers"
+        title={t('customers.title')}
         actions={
           canEdit && (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus className="h-4 w-4" /> New customer
+              <Plus className="h-4 w-4" /> {t('customers.newCustomer')}
             </Button>
           )
         }
@@ -57,7 +59,7 @@ export function CustomersList() {
         <div className="relative w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
-            placeholder="Search customers..."
+            placeholder={t('customers.searchPlaceholder')}
             className="ps-9"
             value={search}
             onChange={(e) => {
@@ -74,19 +76,19 @@ export function CustomersList() {
           }}
           className="w-44"
         >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="prospect">Prospect</option>
-          <option value="inactive">Inactive</option>
+          <option value="">{t('status.allStatuses')}</option>
+          <option value="active">{t('status.active')}</option>
+          <option value="prospect">{t('status.prospect')}</option>
+          <option value="inactive">{t('status.inactive')}</option>
         </Select>
       </div>
       <Card>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-start text-xs uppercase text-muted">
-              <th className="px-5 py-3 text-start font-medium">Name</th>
-              <th className="px-5 py-3 text-start font-medium">Contact</th>
-              <th className="px-5 py-3 text-start font-medium">Status</th>
+              <th className="px-5 py-3 text-start font-medium">{t('customers.colName')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('customers.colContact')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('customers.colStatus')}</th>
               {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
@@ -96,7 +98,7 @@ export function CustomersList() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && data?.items.length === 0}
-              emptyMessage="No customers yet."
+              emptyMessage={t('customers.none')}
               onRetry={refetch}
             />
             {data?.items.map((customer) => (
@@ -108,7 +110,7 @@ export function CustomersList() {
                 <td className="px-5 py-3 font-medium text-charcoal">{customer.name}</td>
                 <td className="px-5 py-3 text-muted">{customer.contactName || '—'}</td>
                 <td className="px-5 py-3">
-                  <Badge status={customer.status}>{customer.status}</Badge>
+                  <Badge status={customer.status}>{t(`status.${customer.status}`)}</Badge>
                 </td>
                 {canEdit && (
                   <td className="px-5 py-3 text-end">
@@ -142,8 +144,8 @@ export function CustomersList() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete customer"
-        description={`Permanently delete "${deleteTarget?.name}"? This cannot be undone.`}
+        title={t('customers.deleteTitle')}
+        description={t('customers.deleteDescription', { name: deleteTarget?.name ?? '' })}
         error={deleteError}
         isSubmitting={deleteCustomer.isPending}
         onConfirm={handleDelete}

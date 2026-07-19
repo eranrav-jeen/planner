@@ -23,7 +23,7 @@ export function Login() {
       const redirectTo = (location.state as { from?: string } | null)?.from ?? '/';
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err instanceof ApiRequestError ? t('login.error') : 'Something went wrong');
+      setError(err instanceof ApiRequestError ? t('login.error') : t('common.somethingWrongGeneric'));
     } finally {
       setIsSubmitting(false);
     }

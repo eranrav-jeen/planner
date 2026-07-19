@@ -12,10 +12,12 @@ import { TableStatusRow } from '../../components/ui/table-status-row';
 import { Pagination } from '../../components/ui/pagination';
 import { EmployeeForm } from './EmployeeForm';
 import { useAuth, ApiRequestError } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import type { Employee } from '../../api/types';
 
 export function EmployeesList() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const [search, setSearch] = useState('');
@@ -32,18 +34,18 @@ export function EmployeesList() {
     setDeleteError(null);
     deleteEmployee.mutate(deleteTarget.id, {
       onSuccess: () => setDeleteTarget(null),
-      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+      onError: (err) => setDeleteError(err instanceof ApiRequestError ? err.message : t('common.failedToDelete')),
     });
   }
 
   return (
     <div>
       <PageHeader
-        title="Employees"
+        title={t('employees.title')}
         actions={
           canEdit && (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus className="h-4 w-4" /> New employee
+              <Plus className="h-4 w-4" /> {t('employees.newEmployee')}
             </Button>
           )
         }
@@ -52,7 +54,7 @@ export function EmployeesList() {
         <div className="relative w-72">
           <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
-            placeholder="Search employees..."
+            placeholder={t('employees.searchPlaceholder')}
             className="ps-9"
             value={search}
             onChange={(e) => {
@@ -66,11 +68,11 @@ export function EmployeesList() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase text-muted">
-              <th className="px-5 py-3 text-start font-medium">Name</th>
-              <th className="px-5 py-3 text-start font-medium">Title</th>
-              <th className="px-5 py-3 text-start font-medium">Department</th>
-              <th className="px-5 py-3 text-start font-medium">Capacity</th>
-              <th className="px-5 py-3 text-start font-medium">Status</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colName')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colTitle')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colDepartment')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colCapacity')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('employees.colStatus')}</th>
               {canEdit && <th className="px-5 py-3" />}
             </tr>
           </thead>
@@ -80,7 +82,7 @@ export function EmployeesList() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && data?.items.length === 0}
-              emptyMessage="No employees yet."
+              emptyMessage={t('employees.none')}
               onRetry={refetch}
             />
             {data?.items.map((employee) => (
@@ -97,7 +99,7 @@ export function EmployeesList() {
                 <td className="px-5 py-3 tabular-nums">{employee.monthlyCapacityHours}h</td>
                 <td className="px-5 py-3">
                   <Badge status={employee.isActive ? 'active' : 'inactive'}>
-                    {employee.isActive ? 'Active' : 'Inactive'}
+                    {employee.isActive ? t('common.active') : t('common.inactive')}
                   </Badge>
                 </td>
                 {canEdit && (
@@ -130,8 +132,10 @@ export function EmployeesList() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete employee"
-        description={`Permanently delete "${deleteTarget?.firstName} ${deleteTarget?.lastName}"? This cannot be undone.`}
+        title={t('employees.deleteTitle')}
+        description={t('employees.deleteDescription', {
+          name: `${deleteTarget?.firstName ?? ''} ${deleteTarget?.lastName ?? ''}`,
+        })}
         error={deleteError}
         isSubmitting={deleteEmployee.isPending}
         onConfirm={handleDelete}

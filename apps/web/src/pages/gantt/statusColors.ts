@@ -5,11 +5,3 @@ export const STATUS_BAR_COLORS: Record<string, { background: string; progress: s
   completed: { background: '#9CA3AF', progress: '#FFFFFF' },
   cancelled: { background: '#E45B4E', progress: '#232122' },
 };
-
-export const STATUS_LABELS: Record<string, string> = {
-  planning: 'Planning',
-  active: 'Active',
-  on_hold: 'On hold',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-};

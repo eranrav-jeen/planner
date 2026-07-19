@@ -25,7 +25,13 @@ export async function getDashboardSummary(params: { projectIds?: string[]; custo
   const totalHoursPaid = projects.reduce((sum, p) => sum + Number(p.hoursPaid), 0);
 
   let totalConsumed = 0;
-  const atRisk: { projectId: string; projectName: string; projectCode: string; reason: string }[] = [];
+  const atRisk: {
+    projectId: string;
+    projectName: string;
+    projectCode: string;
+    reasonKey: string;
+    reasonParams?: Record<string, string | number>;
+  }[] = [];
 
   for (const project of projects) {
     const sum = sumMap.get(project.id);
@@ -40,9 +46,19 @@ export async function getDashboardSummary(params: { projectIds?: string[]; custo
     const overdue = project.endDate ? project.endDate < now : false;
 
     if (remainingRatio !== null && remainingRatio < 0.1) {
-      atRisk.push({ projectId: project.id, projectName: project.name, projectCode: project.code, reason: 'Remaining hours below 10%' });
+      atRisk.push({
+        projectId: project.id,
+        projectName: project.name,
+        projectCode: project.code,
+        reasonKey: 'dashboard.reason.remainingHoursLow',
+      });
     } else if (overdue) {
-      atRisk.push({ projectId: project.id, projectName: project.name, projectCode: project.code, reason: 'Past end date, not completed' });
+      atRisk.push({
+        projectId: project.id,
+        projectName: project.name,
+        projectCode: project.code,
+        reasonKey: 'dashboard.reason.pastEndDate',
+      });
     }
   }
 
@@ -61,18 +77,24 @@ export async function getDashboardSummary(params: { projectIds?: string[]; custo
   }, 0);
 
   const warningCutoff = new Date(now.getTime() + LICENSE_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000);
-  const licenseAttention: { customerId: string; customerName: string; reason: string }[] = [];
+  const licenseAttention: {
+    customerId: string;
+    customerName: string;
+    reasonKey: string;
+    reasonParams?: Record<string, string | number>;
+  }[] = [];
   for (const c of licensedCustomers) {
     if (!c.licensePaid) {
-      licenseAttention.push({ customerId: c.id, customerName: c.name, reason: 'Current license period not paid' });
+      licenseAttention.push({ customerId: c.id, customerName: c.name, reasonKey: 'dashboard.reason.licenseNotPaid' });
     } else if (c.licensePeriodEnd && c.licensePeriodEnd < now) {
-      licenseAttention.push({ customerId: c.id, customerName: c.name, reason: 'License period expired' });
+      licenseAttention.push({ customerId: c.id, customerName: c.name, reasonKey: 'dashboard.reason.licenseExpired' });
     } else if (c.licensePeriodEnd && c.licensePeriodEnd <= warningCutoff) {
       const daysLeft = Math.ceil((c.licensePeriodEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
       licenseAttention.push({
         customerId: c.id,
         customerName: c.name,
-        reason: `License expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+        reasonKey: daysLeft === 1 ? 'dashboard.reason.licenseExpiresInDay' : 'dashboard.reason.licenseExpiresInDays',
+        reasonParams: { days: daysLeft },
       });
     }
   }

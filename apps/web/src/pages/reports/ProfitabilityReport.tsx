@@ -9,9 +9,11 @@ import { useSort } from '../../lib/useSort';
 import { formatCurrency, formatPercent } from '../../lib/format';
 import { ExportButton } from './ExportButton';
 import { TableStatusRow } from '../../components/ui/table-status-row';
+import { useLanguage } from '../../lib/i18n';
 import type { ProfitabilityRow } from '../../api/reports';
 
 export function ProfitabilityReport() {
+  const { t } = useLanguage();
   const [customerId, setCustomerId] = useState('');
   const { data: customersData } = useCustomers();
   const { data, isLoading, isError, refetch } = useProfitabilityReport({ customerId: customerId || undefined });
@@ -26,7 +28,7 @@ export function ProfitabilityReport() {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Select className="w-52" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-          <option value="">All customers</option>
+          <option value="">{t('reports.allCustomers')}</option>
           {customersData?.items.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -39,13 +41,13 @@ export function ProfitabilityReport() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <SortHeader label="Project" sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Customer" sortKey="customerName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Income" sortKey="income" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Cost" sortKey="cost" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Margin" sortKey="margin" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Margin %" sortKey="marginPercent" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.profitability.colProject')} sortKey="projectName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.profitability.colCustomer')} sortKey="customerName" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.profitability.colStatus')} sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.profitability.colIncome')} sortKey="income" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.profitability.colCost')} sortKey="cost" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.profitability.colMargin')} sortKey="margin" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.profitability.colMarginPercent')} sortKey="marginPercent" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
             </tr>
           </thead>
           <tbody>
@@ -54,7 +56,7 @@ export function ProfitabilityReport() {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && (data?.rows.length ?? 0) === 0}
-              emptyMessage="No projects match these filters."
+              emptyMessage={t('reports.profitability.none')}
               onRetry={refetch}
             />
             {sorted.map((row) => (
@@ -64,7 +66,7 @@ export function ProfitabilityReport() {
                 </td>
                 <td className="px-3 py-2.5 text-muted">{row.customerName}</td>
                 <td className="px-3 py-2.5 text-center">
-                  <Badge status={row.status}>{row.status.replace('_', ' ')}</Badge>
+                  <Badge status={row.status}>{t(`status.${row.status}`)}</Badge>
                 </td>
                 <td className="px-3 py-2.5 text-center tabular-nums">{formatCurrency(row.income)}</td>
                 <td className="px-3 py-2.5 text-center tabular-nums">{formatCurrency(row.cost)}</td>
@@ -80,7 +82,7 @@ export function ProfitabilityReport() {
           <tfoot>
             <tr className="border-t-2 border-charcoal/20 font-semibold">
               <td className="px-5 py-3" colSpan={3}>
-                Total
+                {t('reports.profitability.total')}
               </td>
               <td className="px-3 py-3 text-center tabular-nums">{formatCurrency(totals.income)}</td>
               <td className="px-3 py-3 text-center tabular-nums">{formatCurrency(totals.cost)}</td>

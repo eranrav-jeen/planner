@@ -5,6 +5,7 @@ import { useCustomers } from '../../api/customers';
 import { Dialog } from '../../components/ui/dialog';
 import { Field, Input, Select, Textarea } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
+import { useLanguage } from '../../lib/i18n';
 
 function toDateInput(value?: string | null) {
   return value ? value.slice(0, 10) : '';
@@ -43,6 +44,7 @@ export function ProjectForm({
   onSubmit: (input: ProjectInput) => void;
   isSubmitting: boolean;
 }) {
+  const { t } = useLanguage();
   const { data: customers } = useCustomers();
   const [form, setForm] = useState<ProjectInput>(
     project
@@ -70,24 +72,28 @@ export function ProjectForm({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={project ? 'Edit project' : 'New project'}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={project ? t('projects.form.editTitle') : t('projects.form.newTitle')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Name">
+          <Field label={t('projects.form.name')}>
             <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
-          <Field label="Code">
+          <Field label={t('projects.form.code')}>
             <Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
           </Field>
         </div>
-        <Field label="Customer">
+        <Field label={t('projects.form.customer')}>
           <Select
             required
             value={form.customerId}
             onChange={(e) => setForm({ ...form, customerId: e.target.value })}
           >
             <option value="" disabled>
-              Select customer
+              {t('projects.form.selectCustomer')}
             </option>
             {customers?.items.map((c) => (
               <option key={c.id} value={c.id}>
@@ -97,37 +103,37 @@ export function ProjectForm({
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Status">
+          <Field label={t('projects.form.status')}>
             <Select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as ProjectStatus })}
             >
-              <option value="planning">Planning</option>
-              <option value="active">Active</option>
-              <option value="on_hold">On hold</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="planning">{t('status.planning')}</option>
+              <option value="active">{t('status.active')}</option>
+              <option value="on_hold">{t('status.on_hold')}</option>
+              <option value="completed">{t('status.completed')}</option>
+              <option value="cancelled">{t('status.cancelled')}</option>
             </Select>
           </Field>
-          <Field label="Billing type">
+          <Field label={t('projects.form.billingType')}>
             <Select
               value={form.billingType}
               onChange={(e) => setForm({ ...form, billingType: e.target.value as BillingType })}
             >
-              <option value="time_and_materials">Time & materials</option>
-              <option value="fixed_price">Fixed price</option>
+              <option value="time_and_materials">{t('billing.time_and_materials')}</option>
+              <option value="fixed_price">{t('billing.fixed_price')}</option>
             </Select>
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Start date">
+          <Field label={t('projects.form.startDate')}>
             <Input
               type="date"
               value={toDateInput(form.startDate)}
               onChange={(e) => setForm({ ...form, startDate: e.target.value || null })}
             />
           </Field>
-          <Field label="End date">
+          <Field label={t('projects.form.endDate')}>
             <Input
               type="date"
               value={toDateInput(form.endDate)}
@@ -136,7 +142,7 @@ export function ProjectForm({
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Income amount">
+          <Field label={t('projects.form.incomeAmount')}>
             <Input
               type="number"
               min={0}
@@ -144,7 +150,7 @@ export function ProjectForm({
               onChange={(e) => setForm({ ...form, incomeAmount: Number(e.target.value) })}
             />
           </Field>
-          <Field label="Hours paid">
+          <Field label={t('projects.form.hoursPaid')}>
             <Input
               type="number"
               min={0}
@@ -153,10 +159,10 @@ export function ProjectForm({
             />
           </Field>
         </div>
-        <Field label="Currency">
+        <Field label={t('projects.form.currency')}>
           <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
         </Field>
-        <Field label="Description">
+        <Field label={t('projects.form.description')}>
           <Textarea
             rows={3}
             value={form.description ?? ''}
@@ -164,7 +170,7 @@ export function ProjectForm({
           />
         </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label="GitHub repo">
+          <Field label={t('projects.form.githubRepo')}>
             <Input
               type="url"
               placeholder="https://github.com/org/repo"
@@ -172,7 +178,7 @@ export function ProjectForm({
               onChange={(e) => setForm({ ...form, githubRepoUrl: e.target.value })}
             />
           </Field>
-          <Field label="Jira board">
+          <Field label={t('projects.form.jiraBoard')}>
             <Input
               type="url"
               placeholder="https://jeen.atlassian.net/jira/software/projects/..."
@@ -183,10 +189,10 @@ export function ProjectForm({
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>

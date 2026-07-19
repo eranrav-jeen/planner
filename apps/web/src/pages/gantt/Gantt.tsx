@@ -23,7 +23,7 @@ function addDays(date: Date, days: number): Date {
 }
 
 export function GanttPage() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const [customerId, setCustomerId] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
@@ -109,11 +109,11 @@ export function GanttPage() {
 
   return (
     <div>
-      <PageHeader title="Gantt" actions={<ExportButton report="gantt" params={{ customerId: customerId || undefined }} />} />
+      <PageHeader title={t('gantt.title')} actions={<ExportButton report="gantt" params={{ customerId: customerId || undefined }} />} />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Select className="w-56" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-          <option value="">All customers</option>
+          <option value="">{t('gantt.allCustomers')}</option>
           {customersData?.items.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -122,9 +122,9 @@ export function GanttPage() {
         </Select>
         <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
           {[
-            { label: 'Week', mode: ViewMode.Week },
-            { label: 'Month', mode: ViewMode.Month },
-            { label: 'Quarter', mode: ViewMode.Year },
+            { label: t('gantt.week'), mode: ViewMode.Week },
+            { label: t('gantt.month'), mode: ViewMode.Month },
+            { label: t('gantt.quarter'), mode: ViewMode.Year },
           ].map((option) => (
             <button
               key={option.label}
@@ -141,10 +141,10 @@ export function GanttPage() {
       </div>
 
       <Card className="overflow-x-auto p-2">
-        {isLoading && <div className="p-10 text-center text-sm text-muted">Loading...</div>}
+        {isLoading && <div className="p-10 text-center text-sm text-muted">{t('common.loading')}</div>}
         {isError && <ErrorState onRetry={refetch} />}
         {!isLoading && !isError && tasks.length === 0 && (
-          <div className="p-10 text-center text-sm text-muted">No projects with dates to display.</div>
+          <div className="p-10 text-center text-sm text-muted">{t('gantt.noProjects')}</div>
         )}
         {!isLoading && !isError && tasks.length > 0 && (
           <div dir="ltr">
@@ -157,6 +157,7 @@ export function GanttPage() {
               columnWidth={viewMode === ViewMode.Week ? 100 : viewMode === ViewMode.Month ? 60 : 250}
               barCornerRadius={4}
               fontFamily={language === 'he' ? 'Heebo, Inter, sans-serif' : 'Inter, Heebo, sans-serif'}
+              locale={language === 'he' ? 'he-IL' : 'en-GB'}
               TooltipContent={(props) => <GanttTooltip {...props} rowsById={rowsById} />}
             />
           </div>

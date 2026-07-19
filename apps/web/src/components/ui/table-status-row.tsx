@@ -1,11 +1,12 @@
 import { ErrorState } from './error-state';
+import { useLanguage } from '../../lib/i18n';
 
 export function TableStatusRow({
   colSpan,
   isLoading,
   isError,
   isEmpty,
-  emptyMessage = 'Nothing to show yet.',
+  emptyMessage,
   errorMessage,
   onRetry,
 }: {
@@ -17,11 +18,12 @@ export function TableStatusRow({
   errorMessage?: string;
   onRetry?: () => void;
 }) {
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <tr>
         <td colSpan={colSpan} className="px-5 py-6 text-center text-muted">
-          Loading...
+          {t('common.loading')}
         </td>
       </tr>
     );
@@ -39,7 +41,7 @@ export function TableStatusRow({
     return (
       <tr>
         <td colSpan={colSpan} className="px-5 py-6 text-center text-muted">
-          {emptyMessage}
+          {emptyMessage ?? t('common.nothingToShow')}
         </td>
       </tr>
     );

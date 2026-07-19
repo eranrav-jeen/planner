@@ -1,5 +1,6 @@
 import { Download } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import { useLanguage } from '../../lib/i18n';
 
 export type ExportableReport =
   | 'utilization'
@@ -20,6 +21,7 @@ export function ExportButton({
   params?: Record<string, string | undefined>;
   formats?: Array<'xlsx' | 'pdf'>;
 }) {
+  const { t } = useLanguage();
   function download(format: 'xlsx' | 'pdf') {
     const qs = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
@@ -33,12 +35,12 @@ export function ExportButton({
     <div className="flex gap-2">
       {formats.includes('xlsx') && (
         <Button variant="secondary" size="sm" onClick={() => download('xlsx')}>
-          <Download className="h-3.5 w-3.5" /> Excel
+          <Download className="h-3.5 w-3.5" /> {t('reports.excel')}
         </Button>
       )}
       {formats.includes('pdf') && (
         <Button variant="secondary" size="sm" onClick={() => download('pdf')}>
-          <Download className="h-3.5 w-3.5" /> PDF
+          <Download className="h-3.5 w-3.5" /> {t('reports.pdf')}
         </Button>
       )}
     </div>

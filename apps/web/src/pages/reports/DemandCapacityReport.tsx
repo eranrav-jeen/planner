@@ -18,7 +18,7 @@ interface Row {
 }
 
 export function DemandCapacityReport() {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(6);
   const to = addMonthsToKey(windowStart, windowSize - 1);
@@ -47,10 +47,10 @@ export function DemandCapacityReport() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border">
-              <SortHeader label="Month" sortKey="month" activeKey={sortKey} dir={sortDir} onClick={toggle} />
-              <SortHeader label="Demand" sortKey="demand" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Capacity" sortKey="capacity" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
-              <SortHeader label="Gap" sortKey="gap" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.demandCapacity.colMonth')} sortKey="month" activeKey={sortKey} dir={sortDir} onClick={toggle} />
+              <SortHeader label={t('reports.demandCapacity.colDemand')} sortKey="demand" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.demandCapacity.colCapacity')} sortKey="capacity" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
+              <SortHeader label={t('reports.demandCapacity.colGap')} sortKey="gap" activeKey={sortKey} dir={sortDir} onClick={toggle} align="center" />
             </tr>
           </thead>
           <tbody>
@@ -68,7 +68,7 @@ export function DemandCapacityReport() {
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-charcoal/20 font-semibold">
-              <td className="px-5 py-3">Total</td>
+              <td className="px-5 py-3">{t('reports.demandCapacity.total')}</td>
               <td className="px-3 py-3 text-center tabular-nums">{formatHours(totals.demand)}</td>
               <td className="px-3 py-3 text-center tabular-nums">{formatHours(totals.capacity)}</td>
               <td className="px-3 py-3 text-center tabular-nums">{formatHours(totals.gap)}</td>

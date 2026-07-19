@@ -15,19 +15,19 @@ import {
   type User,
 } from '../../api/users';
 import { useAuth, ApiRequestError } from '../../lib/auth';
+import { useLanguage } from '../../lib/i18n';
 import { UserForm } from './UserForm';
 
 export function Settings() {
   const { user: currentUser } = useAuth();
+  const { t } = useLanguage();
 
   if (currentUser?.role !== 'ADMIN') {
     return (
       <div>
-        <PageHeader title="Settings" />
+        <PageHeader title={t('nav.settings')} />
         <Card>
-          <div className="px-5 py-10 text-center text-sm text-muted">
-            Settings and user management are available to Admins only.
-          </div>
+          <div className="px-5 py-10 text-center text-sm text-muted">{t('settings.adminsOnly')}</div>
         </Card>
       </div>
     );
@@ -37,6 +37,7 @@ export function Settings() {
 }
 
 function AdminSettings({ currentUserId }: { currentUserId: string }) {
+  const { t } = useLanguage();
   const { data: users, isLoading, isError, refetch } = useUsers();
   const createUser = useCreateUser();
   const [editing, setEditing] = useState<User | null>(null);
@@ -69,7 +70,7 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
         setWelcomeStatus((prev) => ({ ...prev, [user.id]: 'error' }));
         setWelcomeErrorMsg((prev) => ({
           ...prev,
-          [user.id]: err instanceof ApiRequestError ? err.message : 'Failed to send email',
+          [user.id]: err instanceof ApiRequestError ? err.message : t('settings.failedToSend'),
         }));
       },
     });
@@ -89,7 +90,7 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
 
   function handleSubmit(input: Parameters<typeof createUser.mutate>[0]) {
     const onError = (err: unknown) =>
-      setFormError(err instanceof ApiRequestError ? err.message : 'Failed to save user');
+      setFormError(err instanceof ApiRequestError ? err.message : t('settings.failedToSave'));
     if (editing) {
       updateUser.mutate(input, { onSuccess: () => setFormOpen(false), onError });
     } else {
@@ -100,10 +101,10 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
   return (
     <div>
       <PageHeader
-        title="Settings"
+        title={t('nav.settings')}
         actions={
           <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" /> New user
+            <Plus className="h-4 w-4" /> {t('settings.newUser')}
           </Button>
         }
       />
@@ -111,9 +112,9 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase text-muted">
-              <th className="px-5 py-3 text-start font-medium">Email</th>
-              <th className="px-5 py-3 text-start font-medium">Role</th>
-              <th className="px-5 py-3 text-start font-medium">Status</th>
+              <th className="px-5 py-3 text-start font-medium">{t('settings.colEmail')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('settings.colRole')}</th>
+              <th className="px-5 py-3 text-start font-medium">{t('settings.colStatus')}</th>
               <th className="px-5 py-3" />
             </tr>
           </thead>
@@ -123,41 +124,47 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
               isLoading={isLoading}
               isError={isError}
               isEmpty={!isLoading && !isError && (users?.length ?? 0) === 0}
-              emptyMessage="No users yet."
+              emptyMessage={t('settings.none')}
               onRetry={refetch}
             />
             {users?.map((u) => (
               <tr key={u.id} className="border-b border-border last:border-0">
                 <td className="px-5 py-3 font-medium">
                   {u.email}
-                  {u.id === currentUserId && <span className="ms-1.5 text-xs text-muted">(you)</span>}
+                  {u.id === currentUserId && <span className="ms-1.5 text-xs text-muted">{t('settings.you')}</span>}
                 </td>
-                <td className="px-5 py-3 capitalize text-muted">
-                  {u.role.toLowerCase()}
+                <td className="px-5 py-3 text-muted">
+                  {t(`role.${u.role.toLowerCase()}`)}
                   {u.isRestricted && (
-                    <span className="ms-1.5 text-xs normal-case text-coral">
-                      (restricted to {u.projectAccessIds.length} project{u.projectAccessIds.length === 1 ? '' : 's'})
+                    <span className="ms-1.5 text-xs text-coral">
+                      (
+                      {u.projectAccessIds.length === 1
+                        ? t('settings.restrictedToProject')
+                        : t('settings.restrictedToProjects', { count: u.projectAccessIds.length })}
+                      )
                     </span>
                   )}
                 </td>
                 <td className="px-5 py-3">
-                  <Badge status={u.isActive ? 'active' : 'inactive'}>{u.isActive ? 'Active' : 'Inactive'}</Badge>
+                  <Badge status={u.isActive ? 'active' : 'inactive'}>
+                    {u.isActive ? t('common.active') : t('common.inactive')}
+                  </Badge>
                 </td>
                 <td className="px-5 py-3 text-end">
                   <div className="flex items-center justify-end gap-2">
                     {welcomeStatus[u.id] === 'sent' && (
                       <span className="flex items-center gap-1 text-xs text-emerald-600">
-                        <Check className="h-3.5 w-3.5" /> Sent
+                        <Check className="h-3.5 w-3.5" /> {t('settings.sent')}
                       </span>
                     )}
                     {welcomeStatus[u.id] === 'error' && (
                       <span className="text-xs text-coral" title={welcomeErrorMsg[u.id]}>
-                        Failed to send
+                        {t('settings.failedToSend')}
                       </span>
                     )}
                     <button
                       type="button"
-                      title="Send welcome email"
+                      title={t('settings.sendWelcomeEmail')}
                       onClick={() => handleSendWelcome(u)}
                       disabled={sendWelcomeEmail.isPending && sendWelcomeEmail.variables === u.id}
                       className="text-muted hover:text-charcoal disabled:opacity-50"
@@ -199,8 +206,8 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
-        title="Delete user"
-        description={`Permanently delete the login for "${deleteTarget?.email}"? This cannot be undone.`}
+        title={t('settings.deleteUserTitle')}
+        description={t('settings.deleteUserDescription', { email: deleteTarget?.email ?? '' })}
         error={deleteError}
         isSubmitting={deleteUser.isPending}
         onConfirm={() => {
@@ -209,7 +216,7 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
           deleteUser.mutate(deleteTarget.id, {
             onSuccess: () => setDeleteTarget(null),
             onError: (err) =>
-              setDeleteError(err instanceof ApiRequestError ? err.message : 'Failed to delete'),
+              setDeleteError(err instanceof ApiRequestError ? err.message : t('common.failedToDelete')),
           });
         }}
       />

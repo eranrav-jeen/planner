@@ -1,7 +1,7 @@
 import type { Task } from 'gantt-task-react';
 import { Badge } from '../../components/ui/badge';
 import { formatCurrency, formatPercent } from '../../lib/format';
-import { STATUS_LABELS } from './statusColors';
+import { useLanguage } from '../../lib/i18n';
 import type { GanttProjectRow } from '../../api/gantt';
 
 export function GanttTooltip({
@@ -13,11 +13,13 @@ export function GanttTooltip({
   fontFamily: string;
   rowsById: Map<string, GanttProjectRow>;
 }) {
+  const { t } = useLanguage();
+
   if (task.type === 'project') {
     return (
       <div className="rounded-lg border border-border bg-surface px-3 py-2 text-sm shadow-card">
         <div className="font-medium text-charcoal">{task.name}</div>
-        <div className="text-xs text-muted">Customer group</div>
+        <div className="text-xs text-muted">{t('gantt.customerGroup')}</div>
       </div>
     );
   }
@@ -31,16 +33,20 @@ export function GanttTooltip({
         {row.name} <span className="text-muted">({row.code})</span>
       </div>
       <div className="mb-1.5">
-        <Badge status={row.status}>{STATUS_LABELS[row.status] ?? row.status}</Badge>
+        <Badge status={row.status}>{t(`status.${row.status}`)}</Badge>
       </div>
       <div className="space-y-0.5 text-xs text-muted">
-        <div>Customer: {row.customerName}</div>
+        <div>
+          {t('gantt.customer')}: {row.customerName}
+        </div>
         <div>
           {row.startDate?.slice(0, 10) ?? '—'} → {row.endDate?.slice(0, 10) ?? '—'}
         </div>
-        <div>Income: {formatCurrency(row.incomeAmount, row.currency)}</div>
         <div>
-          Hours: {row.consumed} / {row.hoursPaid} ({formatPercent(row.percentComplete)})
+          {t('gantt.income')}: {formatCurrency(row.incomeAmount, row.currency)}
+        </div>
+        <div>
+          {t('gantt.hours')}: {row.consumed} / {row.hoursPaid} ({formatPercent(row.percentComplete)})
         </div>
       </div>
     </div>
