@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  # Always runs: validates every push to main compiles and typechecks.
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,22 +25,20 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
+  # Only runs when you opt in by setting the repo variable DEPLOY_ENABLED=true
+  # (Settings -> Secrets and variables -> Actions -> Variables) AND providing the
+  # DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY secrets. Until then it's skipped,
+  # so the workflow stays green. Migrations run ON the server via redeploy.sh
+  # (where DATABASE_URL is set) — never from the runner against a remote DB.
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /var/www/jeen-project-planner
-            git fetch origin main
-            git reset --hard origin/main
-            npm ci
-            npx prisma migrate deploy
-            npm run build
-            pm2 reload deploy/ecosystem.config.js
+          script: bash /var/www/jeen-project-planner/deploy/redeploy.sh
