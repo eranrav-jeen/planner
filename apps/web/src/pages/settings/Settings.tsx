@@ -11,7 +11,7 @@ import {
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
-  useSendWelcomeEmail,
+  useSendInvite,
   type User,
 } from '../../api/users';
 import { useAuth, ApiRequestError } from '../../lib/auth';
@@ -47,28 +47,29 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const updateUser = useUpdateUser(editing?.id ?? '');
   const deleteUser = useDeleteUser();
-  const sendWelcomeEmail = useSendWelcomeEmail();
-  const [welcomeStatus, setWelcomeStatus] = useState<Record<string, 'sent' | 'error'>>({});
-  const [welcomeErrorMsg, setWelcomeErrorMsg] = useState<Record<string, string>>({});
+  const sendInvite = useSendInvite();
+  const [inviteStatus, setInviteStatus] = useState<Record<string, 'sent' | 'error'>>({});
+  const [inviteErrorMsg, setInviteErrorMsg] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState<string | null>(null);
 
-  function handleSendWelcome(user: User) {
-    setWelcomeStatus((prev) => {
+  function handleSendInvite(user: User) {
+    setInviteStatus((prev) => {
       const { [user.id]: _drop, ...rest } = prev;
       return rest;
     });
-    sendWelcomeEmail.mutate(user.id, {
+    sendInvite.mutate(user.id, {
       onSuccess: () => {
-        setWelcomeStatus((prev) => ({ ...prev, [user.id]: 'sent' }));
+        setInviteStatus((prev) => ({ ...prev, [user.id]: 'sent' }));
         setTimeout(() => {
-          setWelcomeStatus((prev) => {
+          setInviteStatus((prev) => {
             const { [user.id]: _drop, ...rest } = prev;
             return rest;
           });
         }, 3000);
       },
       onError: (err) => {
-        setWelcomeStatus((prev) => ({ ...prev, [user.id]: 'error' }));
-        setWelcomeErrorMsg((prev) => ({
+        setInviteStatus((prev) => ({ ...prev, [user.id]: 'error' }));
+        setInviteErrorMsg((prev) => ({
           ...prev,
           [user.id]: err instanceof ApiRequestError ? err.message : t('settings.failedToSend'),
         }));
@@ -94,7 +95,18 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
     if (editing) {
       updateUser.mutate(input, { onSuccess: () => setFormOpen(false), onError });
     } else {
-      createUser.mutate(input, { onSuccess: () => setFormOpen(false), onError });
+      createUser.mutate(input, {
+        onSuccess: (created) => {
+          setFormOpen(false);
+          setNotice(
+            created.invited
+              ? t('settings.inviteSent', { email: created.email })
+              : t('settings.userCreated', { email: created.email }),
+          );
+          setTimeout(() => setNotice(null), 6000);
+        },
+        onError,
+      });
     }
   }
 
@@ -108,6 +120,11 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
           </Button>
         }
       />
+      {notice && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
+          <Check className="h-4 w-4 shrink-0" /> {notice}
+        </div>
+      )}
       <Card>
         <table className="w-full text-sm">
           <thead>
@@ -152,21 +169,21 @@ function AdminSettings({ currentUserId }: { currentUserId: string }) {
                 </td>
                 <td className="px-5 py-3 text-end">
                   <div className="flex items-center justify-end gap-2">
-                    {welcomeStatus[u.id] === 'sent' && (
+                    {inviteStatus[u.id] === 'sent' && (
                       <span className="flex items-center gap-1 text-xs text-emerald-600">
                         <Check className="h-3.5 w-3.5" /> {t('settings.sent')}
                       </span>
                     )}
-                    {welcomeStatus[u.id] === 'error' && (
-                      <span className="text-xs text-coral" title={welcomeErrorMsg[u.id]}>
+                    {inviteStatus[u.id] === 'error' && (
+                      <span className="text-xs text-coral" title={inviteErrorMsg[u.id]}>
                         {t('settings.failedToSend')}
                       </span>
                     )}
                     <button
                       type="button"
-                      title={t('settings.sendWelcomeEmail')}
-                      onClick={() => handleSendWelcome(u)}
-                      disabled={sendWelcomeEmail.isPending && sendWelcomeEmail.variables === u.id}
+                      title={t('settings.sendInvite')}
+                      onClick={() => handleSendInvite(u)}
+                      disabled={sendInvite.isPending && sendInvite.variables === u.id}
                       className="text-muted hover:text-charcoal disabled:opacity-50"
                     >
                       <Mail className="h-4 w-4" />

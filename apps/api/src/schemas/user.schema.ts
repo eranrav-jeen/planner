@@ -4,7 +4,8 @@ export const roleEnum = z.enum(['ADMIN', 'MANAGER', 'VIEWER']);
 
 export const createUserSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  // Optional: when omitted, the user is emailed an invite link to set their own password.
+  password: z.string().min(8, 'Password must be at least 8 characters').optional(),
   role: roleEnum.default('VIEWER'),
   employeeId: z.string().uuid().optional().nullable(),
   isRestricted: z.boolean().optional(),

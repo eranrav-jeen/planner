@@ -33,7 +33,8 @@ export function useUsers() {
 export function useCreateUser() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: UserInput) => api.post<User>('/users', input),
+    // `invited` is true when the backend emailed a set-password invite (password left blank).
+    mutationFn: (input: UserInput) => api.post<User & { invited?: boolean }>('/users', input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   });
 }
@@ -54,8 +55,8 @@ export function useDeleteUser() {
   });
 }
 
-export function useSendWelcomeEmail() {
+export function useSendInvite() {
   return useMutation({
-    mutationFn: (id: string) => api.post<{ ok: true }>(`/users/${id}/welcome-email`),
+    mutationFn: (id: string) => api.post<{ ok: true }>(`/users/${id}/invite`),
   });
 }

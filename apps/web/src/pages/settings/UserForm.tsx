@@ -71,14 +71,14 @@ export function UserForm({
         <Field label={t('settings.form.email')}>
           <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label={user ? t('settings.form.newPassword') : t('settings.form.password')}>
+        <Field label={user ? t('settings.form.newPassword') : t('settings.form.passwordInvite')}>
           <Input
             type="password"
-            required={!user}
             minLength={8}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          {!user && <p className="mt-1 text-xs text-muted">{t('settings.form.passwordInviteHint')}</p>}
         </Field>
         <Field label={t('settings.form.role')}>
           <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>

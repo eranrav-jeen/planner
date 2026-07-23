@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useLanguage } from '../lib/i18n';
 import { useAuth, ApiRequestError } from '../lib/auth';
 import { Button } from '../components/ui/button';
@@ -70,6 +70,9 @@ export function Login() {
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {t('login.submit')}
           </Button>
+          <Link to="/forgot-password" className="block text-center text-sm text-muted hover:text-charcoal">
+            {t('login.forgot')}
+          </Link>
         </form>
       </div>
     </div>

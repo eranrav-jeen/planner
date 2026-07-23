@@ -7,8 +7,22 @@ import { validateBody } from '../middleware/validate.js';
 import { createUserSchema, updateUserSchema } from '../schemas/user.schema.js';
 import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
-import { sendMail } from '../lib/mailer.js';
-import { buildWelcomeEmail } from '../emails/welcomeEmail.js';
+import { sendMail, isMailConfigured } from '../lib/mailer.js';
+import { buildInviteEmail } from '../emails/accountEmails.js';
+import { createPasswordToken } from '../lib/passwordTokens.js';
+import { env } from '../lib/env.js';
+import crypto from 'node:crypto';
+
+// Email a user an invite link to set their own password. Returns whether it sent.
+async function sendInvite(user: { id: string; email: string; role: string }): Promise<boolean> {
+  if (!isMailConfigured()) return false;
+  const token = await createPasswordToken(user.id, 'invite');
+  const base = env.appBaseUrl.replace(/\/$/, '');
+  const url = `${base}/set-password?token=${encodeURIComponent(token)}`;
+  const { subject, html, text } = buildInviteEmail(user, url);
+  await sendMail({ to: user.email, subject, html, text });
+  return true;
+}
 
 export const usersRouter = Router();
 usersRouter.use(requireAuth, requireRole('ADMIN'));
@@ -67,10 +81,14 @@ usersRouter.post(
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) throw new ApiError(422, 'A user with this email already exists', { email: 'Already in use' });
 
+    // If the admin didn't set a password, store an unusable random hash so the
+    // account can't be logged into until the user sets their own via the invite.
+    const passwordHash = await bcrypt.hash(password || crypto.randomBytes(32).toString('hex'), 10);
+
     const user = await prisma.user.create({
       data: {
         email,
-        passwordHash: await bcrypt.hash(password, 10),
+        passwordHash,
         role,
         employeeId: employeeId ?? null,
         isRestricted: isRestricted ?? false,
@@ -78,11 +96,21 @@ usersRouter.post(
     });
     await syncProjectAccess(user.id, projectAccessIds);
 
+    // No password provided => email an invite so the user sets their own.
+    let invited = false;
+    if (!password) {
+      try {
+        invited = await sendInvite(user);
+      } catch {
+        invited = false; // account still created; admin can resend the invite
+      }
+    }
+
     const withAccess = await prisma.user.findUnique({
       where: { id: user.id },
       include: { projectAccess: { select: { projectId: true } } },
     });
-    res.status(201).json({ data: toSafeUser(withAccess!) });
+    res.status(201).json({ data: { ...toSafeUser(withAccess!), invited } });
   }),
 );
 
@@ -105,15 +133,17 @@ usersRouter.put(
   }),
 );
 
+// (Re)send the invite / set-password link to a user.
 usersRouter.post(
-  '/:id/welcome-email',
+  '/:id/invite',
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) throw new ApiError(404, 'User not found');
-
-    const { subject, html, text } = buildWelcomeEmail(user);
+    if (!isMailConfigured()) {
+      throw new ApiError(500, 'Email is not configured. Set SMTP_HOST, SMTP_USER and SMTP_PASS in the API environment.');
+    }
     try {
-      await sendMail({ to: user.email, subject, html, text });
+      await sendInvite(user);
     } catch (err) {
       throw new ApiError(500, err instanceof Error ? err.message : 'Failed to send email');
     }
