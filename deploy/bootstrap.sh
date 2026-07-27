@@ -4,8 +4,7 @@
 #
 # Required environment variables (export these before running, do NOT hardcode
 # them in this file or commit them anywhere):
-#   DOMAIN            e.g. planner.raviv360.com
-#   CERTBOT_EMAIL     contact email for Let's Encrypt expiry notices
+#   DOMAIN            e.g. solutions-planner.jeenai.app
 #   GIT_BRANCH        branch to deploy, e.g. claude/new-session-6k49hf or main
 #   DB_PASSWORD       password for the jeen_planner Postgres role
 #   JWT_SECRET        random secret for signing session JWTs
@@ -22,6 +21,18 @@
 #   SMTP_PASS         SMTP password / API key.
 #   MAIL_FROM         From header, e.g. "Jeen Solution OS <notifications@raviv360.com>"
 #
+# TLS: this host sits behind Cloudflare in proxied (orange-cloud) mode, same as
+# the rest of the jeenai.app fleet — so TLS is a Cloudflare Origin Certificate,
+# not Let's Encrypt (no ACME, no certbot, no port-80 validation dance). Before
+# running this script:
+#   1. Cloudflare dashboard -> SSL/TLS -> Origin Server -> Create Certificate
+#      (hostname: $DOMAIN). Set this hostname's SSL/TLS mode to "Full (strict)" —
+#      Origin Certs aren't presented at all in "Flexible" mode.
+#   2. scp the resulting cert + key onto this server, root-owned, before running:
+#        scp origin.pem  <user>@<host>:/tmp/ && sudo install -o root -g root -m 644 /tmp/origin.pem  /etc/ssl/cloudflare/origin.pem
+#        scp origin.key  <user>@<host>:/tmp/ && sudo install -o root -g root -m 600 /tmp/origin.key  /etc/ssl/cloudflare/origin.key
+#   The script fails fast with instructions if these aren't in place yet.
+#
 # The GitHub deploy key (for `git clone`/`git pull` access to this private repo)
 # is generated locally on THIS machine the first time you run the script — its
 # private half never needs to leave the server. The script will print a public
@@ -29,7 +40,7 @@
 # Settings -> Deploy keys, then re-run this script to continue.
 #
 # Example:
-#   export DOMAIN=planner.raviv360.com CERTBOT_EMAIL=you@example.com \
+#   export DOMAIN=solutions-planner.jeenai.app \
 #          GIT_BRANCH=claude/new-session-6k49hf DB_PASSWORD=... JWT_SECRET=... \
 #          ADMIN_EMAIL=admin@jeen.ai ADMIN_PASSWORD=...
 #   bash bootstrap.sh
@@ -37,12 +48,27 @@
 set -euo pipefail
 
 : "${DOMAIN:?Set DOMAIN}"
-: "${CERTBOT_EMAIL:?Set CERTBOT_EMAIL}"
 : "${GIT_BRANCH:?Set GIT_BRANCH}"
 : "${DB_PASSWORD:?Set DB_PASSWORD}"
 : "${JWT_SECRET:?Set JWT_SECRET}"
 : "${ADMIN_EMAIL:?Set ADMIN_EMAIL}"
 : "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD}"
+
+ORIGIN_CERT=/etc/ssl/cloudflare/origin.pem
+ORIGIN_KEY=/etc/ssl/cloudflare/origin.key
+if [[ ! -f "$ORIGIN_CERT" || ! -f "$ORIGIN_KEY" ]]; then
+  echo "=================================================="
+  echo "Missing Cloudflare Origin Certificate. Generate one for $DOMAIN at:"
+  echo "  Cloudflare dashboard -> SSL/TLS -> Origin Server -> Create Certificate"
+  echo "then copy it onto this server:"
+  echo "  sudo mkdir -p /etc/ssl/cloudflare"
+  echo "  sudo install -o root -g root -m 644 <downloaded>.pem $ORIGIN_CERT"
+  echo "  sudo install -o root -g root -m 600 <downloaded>.key $ORIGIN_KEY"
+  echo "Also set this hostname's SSL/TLS mode to \"Full (strict)\" in Cloudflare."
+  echo "Then re-run this script."
+  echo "=================================================="
+  exit 1
+fi
 
 REPO_SSH_URL="git@github.com:eranrav-jeen/planner.git"
 APP_DIR="/var/www/jeen-project-planner"
@@ -54,7 +80,7 @@ echo "==> Installing system packages"
 export DEBIAN_FRONTEND=noninteractive
 sudo -E apt-get update -y
 sudo -E apt-get install -y -o Dpkg::Options::="--force-confdef" curl git nginx postgresql postgresql-contrib \
-  certbot python3-certbot-nginx build-essential \
+  build-essential \
   libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libxkbcommon0 \
   libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2t64 libpango-1.0-0
 
@@ -161,11 +187,20 @@ echo "If this is the first time running pm2 on this box, run the 'sudo env ...' 
 echo "that 'pm2 startup' prints below, so the API survives a reboot:"
 pm2 startup systemd -u "$(whoami)" --hp "$HOME" || true
 
-echo "==> Configuring nginx"
+echo "==> Configuring nginx (TLS via Cloudflare Origin Certificate, no ACME)"
 sudo tee /etc/nginx/sites-available/jeen-planner.conf > /dev/null <<EOF
 server {
     listen 80;
     server_name ${DOMAIN};
+    return 301 https://\$host\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${DOMAIN};
+
+    ssl_certificate     ${ORIGIN_CERT};
+    ssl_certificate_key ${ORIGIN_KEY};
 
     root ${APP_DIR}/apps/web/dist;
     index index.html;
@@ -189,11 +224,9 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 
-echo "==> Requesting TLS certificate"
-sudo certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" --redirect
-
 echo ""
 echo "=================================================="
-echo "Done. https://${DOMAIN} should now be live."
+echo "Done. https://${DOMAIN} should now be live (once Cloudflare's SSL/TLS"
+echo "mode for this hostname is set to \"Full (strict)\")."
 echo "Admin login: ${ADMIN_EMAIL} / (the ADMIN_PASSWORD you set)"
 echo "=================================================="

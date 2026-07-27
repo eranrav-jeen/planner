@@ -1,3 +1,8 @@
+# Example for a host proxied (orange-cloud) through Cloudflare, using a
+# Cloudflare Origin Certificate instead of Let's Encrypt — set this hostname's
+# Cloudflare SSL/TLS mode to "Full (strict)". For a DNS-only (grey-cloud) host
+# reachable directly by browsers, use a real Let's Encrypt cert via certbot
+# instead (see deploy/bootstrap.sh's git history for that variant).
 server {
     listen 80;
     server_name planner.raviv360.com;
@@ -8,8 +13,8 @@ server {
     listen 443 ssl http2;
     server_name planner.raviv360.com;
 
-    ssl_certificate     /etc/letsencrypt/live/planner.raviv360.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/planner.raviv360.com/privkey.pem;
+    ssl_certificate     /etc/ssl/cloudflare/origin.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
 
     root /var/www/jeen-project-planner/apps/web/dist;
     index index.html;
