@@ -146,23 +146,27 @@ sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'"
   sudo -u postgres psql -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 
 echo "==> Writing apps/api/.env"
+# Every value is double-quoted: this file gets `source`d as a shell script
+# below (to load DATABASE_URL for Prisma), and unquoted values containing
+# shell-meaningful characters — e.g. MAIL_FROM's default "Name <addr>" — are
+# otherwise misparsed (`<` becomes a redirection operator, not a literal char).
 cat > "$APP_DIR/apps/api/.env" <<EOF
-DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
-JWT_SECRET=${JWT_SECRET}
-PORT=4000
-NODE_ENV=production
-DEFAULT_CURRENCY=ILS
-PLANNING_WINDOW_MONTHS=6
-DEFAULT_MONTHLY_CAPACITY_HOURS=186
-ADMIN_EMAIL=${ADMIN_EMAIL}
-ADMIN_PASSWORD=${ADMIN_PASSWORD}
-APP_BASE_URL=${APP_BASE_URL:-https://${DOMAIN}}
-SMTP_HOST=${SMTP_HOST:-}
-SMTP_PORT=${SMTP_PORT:-587}
-SMTP_SECURE=${SMTP_SECURE:-false}
-SMTP_USER=${SMTP_USER:-}
-SMTP_PASS=${SMTP_PASS:-}
-MAIL_FROM=${MAIL_FROM:-Jeen Solution OS <notifications@raviv360.com>}
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}"
+JWT_SECRET="${JWT_SECRET}"
+PORT="4000"
+NODE_ENV="production"
+DEFAULT_CURRENCY="ILS"
+PLANNING_WINDOW_MONTHS="6"
+DEFAULT_MONTHLY_CAPACITY_HOURS="186"
+ADMIN_EMAIL="${ADMIN_EMAIL}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD}"
+APP_BASE_URL="${APP_BASE_URL:-https://${DOMAIN}}"
+SMTP_HOST="${SMTP_HOST:-}"
+SMTP_PORT="${SMTP_PORT:-587}"
+SMTP_SECURE="${SMTP_SECURE:-false}"
+SMTP_USER="${SMTP_USER:-}"
+SMTP_PASS="${SMTP_PASS:-}"
+MAIL_FROM="${MAIL_FROM:-Jeen Solution OS <notifications@raviv360.com>}"
 EOF
 chmod 600 "$APP_DIR/apps/api/.env"
 
