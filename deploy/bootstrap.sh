@@ -12,6 +12,16 @@
 #   ADMIN_EMAIL       bootstrap admin login email
 #   ADMIN_PASSWORD    bootstrap admin login password
 #
+# Optional environment variables (sensible defaults if unset):
+#   APP_BASE_URL      public URL of the app; defaults to https://$DOMAIN
+#                     (used in invite / password-reset / notification email links)
+#   SMTP_HOST         outgoing mail host, e.g. smtp.resend.com. Leave unset to
+#   SMTP_PORT         disable email until configured (default port 587).
+#   SMTP_SECURE       "true" for implicit TLS (port 465), else "false" (default).
+#   SMTP_USER         SMTP username (for Resend this is literally "resend").
+#   SMTP_PASS         SMTP password / API key.
+#   MAIL_FROM         From header, e.g. "Jeen Solution OS <notifications@raviv360.com>"
+#
 # The GitHub deploy key (for `git clone`/`git pull` access to this private repo)
 # is generated locally on THIS machine the first time you run the script — its
 # private half never needs to leave the server. The script will print a public
@@ -120,6 +130,13 @@ PLANNING_WINDOW_MONTHS=6
 DEFAULT_MONTHLY_CAPACITY_HOURS=186
 ADMIN_EMAIL=${ADMIN_EMAIL}
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
+APP_BASE_URL=${APP_BASE_URL:-https://${DOMAIN}}
+SMTP_HOST=${SMTP_HOST:-}
+SMTP_PORT=${SMTP_PORT:-587}
+SMTP_SECURE=${SMTP_SECURE:-false}
+SMTP_USER=${SMTP_USER:-}
+SMTP_PASS=${SMTP_PASS:-}
+MAIL_FROM=${MAIL_FROM:-Jeen Solution OS <notifications@raviv360.com>}
 EOF
 chmod 600 "$APP_DIR/apps/api/.env"
 
