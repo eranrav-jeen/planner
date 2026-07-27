@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
-# Nightly Postgres backup for Jeen Planner. Add to root crontab, e.g.:
-#   0 3 * * * /var/www/jeen-project-planner/deploy/backup.sh >> /var/log/jeen-planner-backup.log 2>&1
+# Nightly Postgres backup for Jeen Planner.
+#
+# Must run as the `postgres` OS user, not root: `pg_dump` uses peer auth,
+# which maps the connecting OS user directly to a same-named Postgres role —
+# there is no "root" role, so `pg_dump` fails with `role "root" does not
+# exist` if run as root. One-time setup, then a system cron.d entry:
+#   sudo mkdir -p /var/backups/jeen-planner && sudo chown postgres:postgres /var/backups/jeen-planner
+#   sudo touch /var/log/jeen-planner-backup.log && sudo chown postgres:postgres /var/log/jeen-planner-backup.log
+#   echo '0 3 * * * postgres /var/www/jeen-project-planner/deploy/backup.sh >> /var/log/jeen-planner-backup.log 2>&1' | sudo tee /etc/cron.d/jeen-planner-backup
 set -euo pipefail
 
 BACKUP_DIR="/var/backups/jeen-planner"
