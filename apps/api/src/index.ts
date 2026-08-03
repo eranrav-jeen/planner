@@ -20,6 +20,13 @@ import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 const app = express();
 
+// Trust exactly one hop: nginx is the only reverse proxy in front of this
+// process (both run on the same VM). Without this, express-rate-limit
+// throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request, since it
+// sees nginx's X-Forwarded-For header but has no proxy trust configured
+// to know it's legitimate rather than spoofed by the client.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
