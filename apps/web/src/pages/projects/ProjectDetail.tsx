@@ -21,6 +21,7 @@ import { Input, Select } from '../../components/ui/input';
 import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ErrorState } from '../../components/ui/error-state';
 import { ProjectForm } from './ProjectForm';
+import { MilestonesTab } from './MilestonesTab';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { useLanguage } from '../../lib/i18n';
 import { formatCurrency, formatFileSize, formatHours, formatPercent, useDateFormatter } from '../../lib/format';
@@ -350,6 +351,12 @@ export function ProjectDetail() {
               {t('projects.team')}
             </Tabs.Trigger>
             <Tabs.Trigger
+              value="milestones"
+              className="border-b-2 border-transparent px-3 py-3 text-sm font-medium text-muted data-[state=active]:border-charcoal data-[state=active]:text-charcoal"
+            >
+              {t('milestones.title')}
+            </Tabs.Trigger>
+            <Tabs.Trigger
               value="plan"
               className="border-b-2 border-transparent px-3 py-3 text-sm font-medium text-muted data-[state=active]:border-charcoal data-[state=active]:text-charcoal"
             >
@@ -358,6 +365,9 @@ export function ProjectDetail() {
           </Tabs.List>
           <Tabs.Content value="team" className="p-5">
             <TeamTab projectId={project.id} />
+          </Tabs.Content>
+          <Tabs.Content value="milestones" className="p-5">
+            <MilestonesTab projectId={project.id} />
           </Tabs.Content>
           <Tabs.Content value="plan" className="p-10 text-center text-sm text-muted">
             {t('projects.planComingSoon')}

@@ -16,6 +16,7 @@ import { ganttRouter } from './routes/gantt.routes.js';
 import { exportRouter } from './routes/export.routes.js';
 import { usersRouter } from './routes/users.routes.js';
 import { actualsRouter } from './routes/actuals.routes.js';
+import { milestonesRouter } from './routes/milestones.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/customers', customersRouter);
 app.use('/api/employees', employeesRouter);
+app.use('/api/projects/:projectId/milestones', milestonesRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/allocations', allocationsRouter);
