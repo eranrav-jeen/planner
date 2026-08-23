@@ -263,6 +263,10 @@ const dictionaries = {
     'planning.noTeamMembers': 'אין עדיין חברי צוות בפרויקט זה.',
     'planning.teamTotal': 'סה"כ צוות',
     'planning.total': 'סה"כ',
+    'planning.planned': 'מתוכנן',
+    'planning.actual': 'בפועל',
+    'planning.planVsActualLegend': 'מתוכנן (מאבני דרך) · בפועל (מדוחות אדמירל)',
+    'planning.readOnlyNote': 'התכנון נגזר מאבני הדרך של הפרויקטים; שעות בפועל מיובאות מדוחות הנוכחות.',
 
     'reports.title': 'דוחות',
     'reports.tabs.utilization': 'ניצולת עובדים',
@@ -706,6 +710,10 @@ const dictionaries = {
     'planning.noTeamMembers': 'No team members on this project yet.',
     'planning.teamTotal': 'Team total',
     'planning.total': 'Total',
+    'planning.planned': 'Planned',
+    'planning.actual': 'Actual',
+    'planning.planVsActualLegend': 'Planned (from milestones) · Actual (from Admiral reports)',
+    'planning.readOnlyNote': 'Planning is derived from project milestones; actual hours are imported from attendance reports.',
 
     'reports.title': 'Reports',
     'reports.tabs.utilization': 'Employee utilization',

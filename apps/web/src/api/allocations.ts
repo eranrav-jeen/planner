@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from './client';
 
 export interface MonthlyAllocation {
@@ -11,14 +11,8 @@ export interface MonthlyAllocation {
   note?: string | null;
 }
 
-export interface AllocationItemInput {
-  employeeId: string;
-  projectId: string;
-  month: string;
-  plannedHours: number;
-  actualHours?: number | null;
-}
-
+// Read-only: planned hours come from the milestone roll-up and actual hours
+// from the attendance import. There is no client write path.
 export function useAllocations(from: string, to: string, filters: { employeeId?: string; projectId?: string } = {}) {
   const params = new URLSearchParams({ from, to });
   if (filters.employeeId) params.set('employeeId', filters.employeeId);
@@ -27,22 +21,5 @@ export function useAllocations(from: string, to: string, filters: { employeeId?:
   return useQuery({
     queryKey: ['allocations', from, to, filters],
     queryFn: () => api.get<MonthlyAllocation[]>(`/allocations?${params.toString()}`),
-  });
-}
-
-export function useBulkUpsertAllocations() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (items: AllocationItemInput[]) => api.put<MonthlyAllocation[]>('/allocations', { items }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allocations'] }),
-  });
-}
-
-export function useCopyForwardAllocations() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (input: { fromMonth: string; toMonths: string[]; employeeId?: string; projectId?: string }) =>
-      api.post<MonthlyAllocation[]>('/allocations/copy', input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['allocations'] }),
   });
 }

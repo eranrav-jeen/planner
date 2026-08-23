@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy, Minus, Plus, Save } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/input';
 import { useEmployees } from '../../api/employees';
 import { useProjects } from '../../api/projects';
 import { useAssignments } from '../../api/assignments';
-import { useAllocations, useBulkUpsertAllocations, useCopyForwardAllocations } from '../../api/allocations';
+import { useAllocations } from '../../api/allocations';
 import { useCapacityOverrides } from '../../api/capacityOverrides';
 import { useLanguage } from '../../lib/i18n';
-import { useAuth } from '../../lib/auth';
 import { addMonthsToKey, currentMonthKey, monthRange, monthShortLabel } from '../../lib/months';
-import { cellKey, type InputMode } from './gridUtils';
+import type { InputMode } from './gridUtils';
 import { EmployeePivot } from './EmployeePivot';
 import { ProjectPivot } from './ProjectPivot';
 import { CustomerPivot } from './CustomerPivot';
@@ -24,17 +22,12 @@ const DEFAULT_WINDOW_SIZE = 7;
 
 export function Planning() {
   const { language, t } = useLanguage();
-  const { user } = useAuth();
-  const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const [pivot, setPivot] = useState<'employee' | 'project' | 'customer'>('employee');
   const [inputMode, setInputMode] = useState<InputMode>('hours');
   const [windowStart, setWindowStart] = useState(currentMonthKey());
   const [windowSize, setWindowSize] = useState(DEFAULT_WINDOW_SIZE);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [edited, setEdited] = useState<Map<string, number>>(new Map());
-  const [copySourceMonth, setCopySourceMonth] = useState(currentMonthKey());
-  const [copyTargetCount, setCopyTargetCount] = useState(3);
 
   const months = useMemo(() => monthRange(windowStart, windowSize), [windowStart, windowSize]);
   const from = months[0];
@@ -58,64 +51,25 @@ export function Planning() {
   const { data: overrides = [] } = useCapacityOverrides(from, to);
   const { data: allAssignments = [] } = useAssignments(pivot === 'project' ? { projectId: selectedProjectId } : {});
 
-  const bulkUpsert = useBulkUpsertAllocations();
-  const copyForward = useCopyForwardAllocations();
-
-  useEffect(() => {
-    setEdited(new Map());
-  }, [pivot, selectedProjectId, from, to]);
-
-  function handleChange(employeeId: string, projectId: string, monthKey: string, value: number) {
-    setEdited((prev) => {
-      const next = new Map(prev);
-      next.set(cellKey(employeeId, projectId, monthKey), Math.max(0, value));
-      return next;
-    });
-  }
-
-  async function handleSave() {
-    const items = Array.from(edited.entries()).map(([key, plannedHours]) => {
-      const [employeeId, projectId, month] = key.split('|');
-      return { employeeId, projectId, month, plannedHours };
-    });
-    if (items.length === 0) return;
-    await bulkUpsert.mutateAsync(items);
-    setEdited(new Map());
-  }
-
-  async function handleCopyForward() {
-    const toMonths = monthRange(addMonthsToKey(copySourceMonth, 1), copyTargetCount);
-    await copyForward.mutateAsync({
-      fromMonth: copySourceMonth,
-      toMonths,
-      projectId: pivot === 'project' ? selectedProjectId : undefined,
-    });
-  }
-
   return (
     <div>
       <PageHeader
         title={t('planning.title')}
         actions={
-          <div className="flex items-center gap-2">
-            <ExportButton
-              report="planning"
-              formats={['xlsx']}
-              params={{
-                from,
-                to,
-                pivot,
-                projectId: pivot === 'project' ? selectedProjectId : undefined,
-              }}
-            />
-            {canEdit && (
-              <Button onClick={handleSave} disabled={edited.size === 0 || bulkUpsert.isPending}>
-                <Save className="h-4 w-4" /> {t('planning.save')} {edited.size > 0 && `(${edited.size})`}
-              </Button>
-            )}
-          </div>
+          <ExportButton
+            report="planning"
+            formats={['xlsx']}
+            params={{
+              from,
+              to,
+              pivot,
+              projectId: pivot === 'project' ? selectedProjectId : undefined,
+            }}
+          />
         }
       />
+
+      <p className="mb-4 text-sm text-muted">{t('planning.readOnlyNote')}</p>
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
@@ -176,11 +130,7 @@ export function Planning() {
 
         <div className="flex flex-wrap items-end gap-3">
           {pivot === 'project' && (
-            <Select
-              className="w-56"
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-            >
+            <Select className="w-56" value={selectedProjectId} onChange={(e) => setSelectedProjectId(e.target.value)}>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.code})
@@ -207,11 +157,7 @@ export function Planning() {
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
-            <Select
-              className="w-24"
-              value={windowSize}
-              onChange={(e) => setWindowSize(Number(e.target.value))}
-            >
+            <Select className="w-24" value={windowSize} onChange={(e) => setWindowSize(Number(e.target.value))}>
               {[3, 6, 7, 9, 12].map((n) => (
                 <option key={n} value={n}>
                   {t('planning.months', { n })}
@@ -220,6 +166,15 @@ export function Planning() {
             </Select>
           </div>
         </div>
+      </div>
+
+      <div className="mb-2 flex items-center gap-3 text-xs text-muted">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full bg-charcoal" /> {t('planning.planned')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full bg-muted" /> {t('planning.actual')}
+        </span>
       </div>
 
       <Card className="overflow-x-auto">
@@ -232,10 +187,7 @@ export function Planning() {
             assignments={allAssignments}
             allocations={allocations}
             overrides={overrides}
-            edited={edited}
-            onChange={handleChange}
             language={language}
-            canEdit={canEdit}
             inputMode={inputMode}
           />
         ) : pivot === 'customer' ? (
@@ -245,7 +197,6 @@ export function Planning() {
             assignments={allAssignments}
             allocations={allocations}
             overrides={overrides}
-            edited={edited}
             language={language}
             inputMode={inputMode}
           />
@@ -256,46 +207,11 @@ export function Planning() {
             months={months}
             allocations={allocations}
             overrides={overrides}
-            edited={edited}
-            onChange={handleChange}
             language={language}
-            canEdit={canEdit}
             inputMode={inputMode}
           />
         )}
       </Card>
-
-      {canEdit && (
-        <Card className="mt-4">
-          <div className="flex flex-wrap items-end gap-3 p-4">
-            <span className="text-sm font-medium text-charcoal">{t('planning.copyForward')}</span>
-            <Select
-              className="w-40"
-              value={copySourceMonth}
-              onChange={(e) => setCopySourceMonth(e.target.value)}
-            >
-              {months.map((m) => (
-                <option key={m} value={m}>
-                  {monthShortLabel(m, language)}
-                </option>
-              ))}
-            </Select>
-            <span className="text-sm text-muted">{t('planning.toNext')}</span>
-            <input
-              type="number"
-              min={1}
-              max={12}
-              value={copyTargetCount}
-              onChange={(e) => setCopyTargetCount(Number(e.target.value))}
-              className="w-16 rounded-lg border border-border bg-surface px-2 py-1.5 text-center text-sm outline-none focus:border-charcoal"
-            />
-            <span className="text-sm text-muted">{t('planning.monthsSuffix')}</span>
-            <Button variant="secondary" size="sm" onClick={handleCopyForward} disabled={copyForward.isPending}>
-              <Copy className="h-4 w-4" /> {t('planning.apply')}
-            </Button>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { AssignmentRow } from '../../api/assignments';
 import type { MonthlyAllocation } from '../../api/allocations';
 import type { CapacityOverride } from '../../api/capacityOverrides';
-import { cellKey, hoursToPercent, percentToHours, roundHours, type InputMode } from './gridUtils';
+import { cellKey, hoursToPercent, roundHours, type InputMode } from './gridUtils';
 import { monthShortLabel } from '../../lib/months';
 import { useLanguage } from '../../lib/i18n';
 
@@ -12,10 +12,7 @@ export function ProjectPivot({
   months,
   allocations,
   overrides,
-  edited,
-  onChange,
   language,
-  canEdit,
   inputMode,
 }: {
   projectId: string;
@@ -23,41 +20,43 @@ export function ProjectPivot({
   months: string[];
   allocations: MonthlyAllocation[];
   overrides: CapacityOverride[];
-  edited: Map<string, number>;
-  onChange: (employeeId: string, projectId: string, monthKey: string, value: number) => void;
   language: 'he' | 'en';
-  canEdit: boolean;
   inputMode: InputMode;
 }) {
   const { t } = useLanguage();
-  const allocationMap = useMemo(() => {
+
+  const plannedMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of allocations) map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.plannedHours));
+    return map;
+  }, [allocations]);
+
+  const actualMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const a of allocations) {
-      map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.plannedHours));
+      if (a.actualHours != null) map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.actualHours));
     }
     return map;
   }, [allocations]);
 
   const overrideMap = useMemo(() => {
     const map = new Map<string, number>();
-    for (const o of overrides) {
-      map.set(`${o.employeeId}|${o.month.slice(0, 7)}`, Number(o.capacityHours));
-    }
+    for (const o of overrides) map.set(`${o.employeeId}|${o.month.slice(0, 7)}`, Number(o.capacityHours));
     return map;
   }, [overrides]);
 
-  function getValue(employeeId: string, monthKey: string): number {
-    const key = cellKey(employeeId, projectId, monthKey);
-    return roundHours(edited.get(key) ?? allocationMap.get(key) ?? 0);
-  }
+  const planned = (employeeId: string, monthKey: string) =>
+    roundHours(plannedMap.get(cellKey(employeeId, projectId, monthKey)) ?? 0);
+  const actual = (employeeId: string, monthKey: string) =>
+    roundHours(actualMap.get(cellKey(employeeId, projectId, monthKey)) ?? 0);
 
   function capacityFor(assignment: AssignmentRow, monthKey: string): number {
     return overrideMap.get(`${assignment.employeeId}|${monthKey}`) ?? assignment.employee.monthlyCapacityHours;
   }
 
-  const totalsByMonth = months.map((m) =>
-    roundHours(assignments.reduce((sum, a) => sum + getValue(a.employeeId, m), 0)),
-  );
+  function fmt(hours: number, capacity: number): string {
+    return inputMode === 'percent' ? `${Math.round(hoursToPercent(hours, capacity) * 10) / 10}%` : `${hours}h`;
+  }
 
   return (
     <table className="w-full text-sm">
@@ -86,30 +85,11 @@ export function ProjectPivot({
               {a.roleOnProject && <span className="ms-1.5 text-xs text-muted">({a.roleOnProject})</span>}
             </td>
             {months.map((m) => {
-              const hours = getValue(a.employeeId, m);
               const capacity = capacityFor(a, m);
-              const displayValue =
-                inputMode === 'percent' ? Math.round(hoursToPercent(hours, capacity) * 10) / 10 : hours;
               return (
-                <td key={m} className="px-1 py-1 text-center">
-                  {canEdit ? (
-                    <input
-                      type="number"
-                      min={0}
-                      className="w-16 rounded-md border border-transparent bg-transparent px-1 py-1 text-center tabular-nums outline-none hover:border-border focus:border-charcoal focus:bg-surface"
-                      value={displayValue}
-                      onChange={(e) => {
-                        const raw = Number(e.target.value);
-                        const newHours = inputMode === 'percent' ? percentToHours(raw, capacity) : raw;
-                        onChange(a.employeeId, projectId, m, newHours);
-                      }}
-                    />
-                  ) : (
-                    <span className="tabular-nums">
-                      {displayValue}
-                      {inputMode === 'percent' ? '%' : 'h'}
-                    </span>
-                  )}
+                <td key={m} className="px-3 py-2 text-center tabular-nums">
+                  <div>{fmt(planned(a.employeeId, m), capacity)}</div>
+                  <div className="text-xs text-muted">{fmt(actual(a.employeeId, m), capacity)}</div>
                 </td>
               );
             })}
@@ -119,11 +99,16 @@ export function ProjectPivot({
       <tfoot>
         <tr className="border-t-2 border-charcoal/20 font-semibold">
           <td className="px-5 py-3">{t('planning.total')}</td>
-          {totalsByMonth.map((total, i) => (
-            <td key={months[i]} className="px-3 py-3 text-center tabular-nums">
-              {total}h
-            </td>
-          ))}
+          {months.map((m) => {
+            const plan = roundHours(assignments.reduce((s, a) => s + planned(a.employeeId, m), 0));
+            const act = roundHours(assignments.reduce((s, a) => s + actual(a.employeeId, m), 0));
+            return (
+              <td key={m} className="px-3 py-3 text-center tabular-nums">
+                <div>{plan}h</div>
+                <div className="text-xs font-normal text-muted">{act}h</div>
+              </td>
+            );
+          })}
         </tr>
       </tfoot>
     </table>

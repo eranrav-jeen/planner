@@ -15,7 +15,6 @@ export function CustomerPivot({
   assignments,
   allocations,
   overrides,
-  edited,
   language,
   inputMode,
 }: {
@@ -24,17 +23,22 @@ export function CustomerPivot({
   assignments: AssignmentRow[];
   allocations: MonthlyAllocation[];
   overrides: CapacityOverride[];
-  edited: Map<string, number>;
   language: 'he' | 'en';
   inputMode: InputMode;
 }) {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  const allocationMap = useMemo(() => {
+  const plannedMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const a of allocations) map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.plannedHours));
+    return map;
+  }, [allocations]);
+
+  const actualMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const a of allocations) {
-      map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.plannedHours));
+      if (a.actualHours != null) map.set(cellKey(a.employeeId, a.projectId, a.month.slice(0, 7)), Number(a.actualHours));
     }
     return map;
   }, [allocations]);
@@ -51,19 +55,21 @@ export function CustomerPivot({
 
   const overrideMap = useMemo(() => {
     const map = new Map<string, number>();
-    for (const o of overrides) {
-      map.set(`${o.employeeId}|${o.month.slice(0, 7)}`, Number(o.capacityHours));
-    }
+    for (const o of overrides) map.set(`${o.employeeId}|${o.month.slice(0, 7)}`, Number(o.capacityHours));
     return map;
   }, [overrides]);
 
-  function getValue(employeeId: string, projectId: string, monthKey: string): number {
-    const key = cellKey(employeeId, projectId, monthKey);
-    return edited.get(key) ?? allocationMap.get(key) ?? 0;
-  }
+  const planned = (employeeId: string, projectId: string, monthKey: string) =>
+    plannedMap.get(cellKey(employeeId, projectId, monthKey)) ?? 0;
+  const actual = (employeeId: string, projectId: string, monthKey: string) =>
+    actualMap.get(cellKey(employeeId, projectId, monthKey)) ?? 0;
 
   function capacityFor(employee: Employee, monthKey: string): number {
     return overrideMap.get(`${employee.id}|${monthKey}`) ?? employee.monthlyCapacityHours;
+  }
+
+  function fmt(hours: number, capacity: number): string {
+    return inputMode === 'percent' ? `${Math.round(hoursToPercent(hours, capacity) * 10) / 10}%` : `${roundHours(hours)}h`;
   }
 
   function toggle(employeeId: string) {
@@ -74,18 +80,6 @@ export function CustomerPivot({
       return next;
     });
   }
-
-  const teamCapacityByMonth = months.map((m) =>
-    roundHours(employees.reduce((sum, e) => sum + capacityFor(e, m), 0)),
-  );
-  const teamPlannedByMonth = months.map((m) =>
-    roundHours(
-      employees.reduce((sum, e) => {
-        const projects = assignmentsByEmployee.get(e.id) ?? [];
-        return sum + projects.reduce((s, p) => s + getValue(e.id, p.projectId, m), 0);
-      }, 0),
-    ),
-  );
 
   return (
     <table className="w-full text-sm">
@@ -106,10 +100,7 @@ export function CustomerPivot({
 
           const customers = new Map<string, { name: string; projectIds: string[] }>();
           for (const p of projects) {
-            const entry = customers.get(p.project.customer.id) ?? {
-              name: p.project.customer.name,
-              projectIds: [],
-            };
+            const entry = customers.get(p.project.customer.id) ?? { name: p.project.customer.name, projectIds: [] };
             entry.projectIds.push(p.projectId);
             customers.set(p.project.customer.id, entry);
           }
@@ -128,14 +119,17 @@ export function CustomerPivot({
                   </span>
                 </td>
                 {months.map((m) => {
-                  const total = roundHours(
-                    projects.reduce((sum, p) => sum + getValue(employee.id, p.projectId, m), 0),
-                  );
+                  const plan = roundHours(projects.reduce((sum, p) => sum + planned(employee.id, p.projectId, m), 0));
+                  const act = roundHours(projects.reduce((sum, p) => sum + actual(employee.id, p.projectId, m), 0));
                   const capacity = capacityFor(employee, m);
-                  const ratio = capacity > 0 ? total / capacity : total > 0 ? 2 : 0;
+                  const ratio = capacity > 0 ? plan / capacity : plan > 0 ? 2 : 0;
                   return (
-                    <td key={m} className={cn('px-3 py-2.5 text-center tabular-nums', utilizationClass(ratio))}>
-                      {total}h <span className="text-xs opacity-70">({Math.round(hoursToPercent(total, capacity))}%)</span>
+                    <td key={m} className={cn('px-3 py-2 text-center tabular-nums', utilizationClass(ratio))}>
+                      <div>
+                        {fmt(plan, capacity)}
+                        {inputMode === 'hours' && <span className="text-xs opacity-70"> ({Math.round(hoursToPercent(plan, capacity))}%)</span>}
+                      </div>
+                      <div className="text-xs text-muted">{fmt(act, capacity)}</div>
                     </td>
                   );
                 })}
@@ -152,16 +146,13 @@ export function CustomerPivot({
                     <tr key={`${employee.id}-${customerId}`} className="border-b border-border bg-bg/60">
                       <td className="px-5 py-2 ps-10 text-xs text-muted">{customer.name}</td>
                       {months.map((m) => {
-                        const hours = roundHours(
-                          customer.projectIds.reduce((sum, pid) => sum + getValue(employee.id, pid, m), 0),
-                        );
                         const capacity = capacityFor(employee, m);
-                        const displayValue =
-                          inputMode === 'percent' ? Math.round(hoursToPercent(hours, capacity) * 10) / 10 : hours;
+                        const plan = roundHours(customer.projectIds.reduce((s, pid) => s + planned(employee.id, pid, m), 0));
+                        const act = roundHours(customer.projectIds.reduce((s, pid) => s + actual(employee.id, pid, m), 0));
                         return (
                           <td key={m} className="px-3 py-1.5 text-center tabular-nums">
-                            {displayValue}
-                            {inputMode === 'percent' ? '%' : 'h'}
+                            <div>{fmt(plan, capacity)}</div>
+                            <div className="text-xs text-muted">{fmt(act, capacity)}</div>
                           </td>
                         );
                       })}
@@ -175,11 +166,29 @@ export function CustomerPivot({
       <tfoot>
         <tr className="border-t-2 border-charcoal/20 font-semibold">
           <td className="px-5 py-3">{t('planning.teamTotal')}</td>
-          {months.map((m, i) => (
-            <td key={m} className="px-3 py-3 text-center tabular-nums">
-              {teamPlannedByMonth[i]}h <span className="font-normal text-muted">/ {teamCapacityByMonth[i]}h</span>
-            </td>
-          ))}
+          {months.map((m) => {
+            const capacity = roundHours(employees.reduce((s, e) => s + capacityFor(e, m), 0));
+            const plan = roundHours(
+              employees.reduce(
+                (sum, e) => sum + (assignmentsByEmployee.get(e.id) ?? []).reduce((s, p) => s + planned(e.id, p.projectId, m), 0),
+                0,
+              ),
+            );
+            const act = roundHours(
+              employees.reduce(
+                (sum, e) => sum + (assignmentsByEmployee.get(e.id) ?? []).reduce((s, p) => s + actual(e.id, p.projectId, m), 0),
+                0,
+              ),
+            );
+            return (
+              <td key={m} className="px-3 py-3 text-center tabular-nums">
+                <div>
+                  {plan}h <span className="font-normal text-muted">/ {capacity}h</span>
+                </div>
+                <div className="text-xs font-normal text-muted">{act}h</div>
+              </td>
+            );
+          })}
         </tr>
       </tfoot>
     </table>
