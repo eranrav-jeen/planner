@@ -1,4 +1,10 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+// `override: true` makes apps/api/.env authoritative over any variable already
+// present in the process environment. Without it, a stale value injected by the
+// process manager (e.g. an empty SMTP_HOST captured by pm2 at first launch)
+// would win and silently mask the real value in .env after it's edited.
+dotenv.config({ override: true });
 
 function required(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
