@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useEmployees } from '../../api/employees';
 import {
   useCreateMilestone,
   useDeleteMilestone,
   useMilestones,
-  useReorderMilestones,
   useUpdateMilestone,
   type Milestone,
   type MilestoneInput,
@@ -32,6 +31,19 @@ const WORK_TYPES: WorkType[] = [
   'project_management',
 ];
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysISO(iso: string, days: number): string {
+  return new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+function durationWeeks(startISO: string, endISO: string): number {
+  const days = (Date.parse(endISO) - Date.parse(startISO)) / 86_400_000 + 1; // inclusive
+  return Math.max(1, Math.round(days / 7));
+}
+
 export function MilestonesTab({ projectId }: { projectId: string }) {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -41,7 +53,6 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
   const createM = useCreateMilestone(projectId);
   const updateM = useUpdateMilestone(projectId);
   const deleteM = useDeleteMilestone(projectId);
-  const reorderM = useReorderMilestones(projectId);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Milestone | null>(null);
@@ -52,14 +63,6 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
   if (isError || !data) return <ErrorState onRetry={refetch} />;
 
   const milestones = data.milestones;
-
-  function move(index: number, dir: -1 | 1) {
-    const order = milestones.map((m) => m.id);
-    const j = index + dir;
-    if (j < 0 || j >= order.length) return;
-    [order[index], order[j]] = [order[j], order[index]];
-    reorderM.mutate(order);
-  }
 
   return (
     <div className="space-y-4">
@@ -78,12 +81,6 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
         )}
       </div>
 
-      {!data.hasStartDate && (
-        <div className="rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-charcoal">
-          {t('milestones.noStartDate')}
-        </div>
-      )}
-
       {milestones.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted">{t('milestones.none')}</p>
       ) : (
@@ -96,33 +93,13 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
                     {i + 1}. {m.name}
                   </h4>
                   <p className="text-xs text-muted">
-                    {m.durationWeeks} {t('milestones.week')}
-                    {m.startDate && m.endDate && ` · ${formatDate(m.startDate)} – ${formatDate(m.endDate)}`}
+                    {formatDate(m.startDate)} – {formatDate(m.endDate)}
+                    {` · ${durationWeeks(m.startDate, m.endDate)} ${t('milestones.week')}`}
                     {` · ${formatHours(m.totalHours)}`}
                   </p>
                 </div>
                 {canEdit && (
                   <div className="flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label={t('milestones.moveUp')}
-                      title={t('milestones.moveUp')}
-                      disabled={i === 0 || reorderM.isPending}
-                      onClick={() => move(i, -1)}
-                      className="rounded p-1 text-muted hover:bg-bg disabled:opacity-30"
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={t('milestones.moveDown')}
-                      title={t('milestones.moveDown')}
-                      disabled={i === milestones.length - 1 || reorderM.isPending}
-                      onClick={() => move(i, 1)}
-                      className="rounded p-1 text-muted hover:bg-bg disabled:opacity-30"
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </button>
                     <button
                       type="button"
                       aria-label={t('common.edit')}
@@ -228,7 +205,8 @@ function MilestoneForm({
   const { t } = useLanguage();
   const { data: employees } = useEmployees();
   const [name, setName] = useState(milestone?.name ?? '');
-  const [durationWeeks, setDurationWeeks] = useState(milestone?.durationWeeks ?? 1);
+  const [startDate, setStartDate] = useState(milestone?.startDate ?? todayISO());
+  const [endDate, setEndDate] = useState(milestone?.endDate ?? addDaysISO(todayISO(), 27));
   const [lines, setLines] = useState<MilestoneLineInput[]>(
     milestone?.lines.map((l) => ({ employeeId: l.employeeId, workType: l.workType, effortPct: l.effortPct })) ?? [],
   );
@@ -240,28 +218,29 @@ function MilestoneForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (endDate < startDate) {
+      setError(t('milestones.invalidDates'));
+      return;
+    }
     if (lines.some((l) => !l.employeeId)) {
       setError(t('milestones.lineNeedsEmployee'));
       return;
     }
-    onSubmit({ name, durationWeeks, lines });
+    onSubmit({ name, startDate, endDate, lines });
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={milestone ? t('milestones.editTitle') : t('milestones.newTitle')}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <Field label={t('milestones.nameLabel')}>
+          <Input required value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
         <div className="grid grid-cols-2 gap-4">
-          <Field label={t('milestones.nameLabel')}>
-            <Input required value={name} onChange={(e) => setName(e.target.value)} />
+          <Field label={t('milestones.startDate')}>
+            <Input type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </Field>
-          <Field label={t('milestones.weeksLabel')}>
-            <Input
-              type="number"
-              min={1}
-              required
-              value={durationWeeks}
-              onChange={(e) => setDurationWeeks(Number(e.target.value))}
-            />
+          <Field label={t('milestones.endDate')}>
+            <Input type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </Field>
         </div>
 

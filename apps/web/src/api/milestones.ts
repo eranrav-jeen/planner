@@ -23,17 +23,13 @@ export interface MilestoneLine {
 export interface Milestone {
   id: string;
   name: string;
-  durationWeeks: number;
-  sortOrder: number;
-  startDate: string | null;
-  endDate: string | null;
+  startDate: string;
+  endDate: string;
   totalHours: number;
   lines: MilestoneLine[];
 }
 
 export interface MilestonesView {
-  projectStartDate: string | null;
-  hasStartDate: boolean;
   milestones: Milestone[];
 }
 
@@ -45,7 +41,8 @@ export interface MilestoneLineInput {
 
 export interface MilestoneInput {
   name: string;
-  durationWeeks: number;
+  startDate: string;
+  endDate: string;
   lines: MilestoneLineInput[];
 }
 
@@ -90,15 +87,6 @@ export function useDeleteMilestone(projectId: string) {
   const invalidate = useMilestoneInvalidation(projectId);
   return useMutation({
     mutationFn: (id: string) => api.delete<MilestonesView>(`/projects/${projectId}/milestones/${id}`),
-    onSuccess: invalidate,
-  });
-}
-
-export function useReorderMilestones(projectId: string) {
-  const invalidate = useMilestoneInvalidation(projectId);
-  return useMutation({
-    mutationFn: (order: string[]) =>
-      api.put<MilestonesView>(`/projects/${projectId}/milestones/reorder`, { order }),
     onSuccess: invalidate,
   });
 }

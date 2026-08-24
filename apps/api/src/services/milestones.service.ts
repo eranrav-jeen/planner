@@ -6,31 +6,12 @@ import { prisma } from '../lib/prisma.js';
 
 const MS_PER_DAY = 86_400_000;
 
-function utcDateOnly(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-}
-
 function addDaysUTC(d: Date, days: number): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days));
 }
 
-export interface MilestoneRange {
-  start: Date; // inclusive
-  end: Date; // exclusive
-}
-
-// Lay milestones end-to-end starting at the project start date, each spanning
-// its duration in weeks. Returns a [start, end) range per milestone, in order.
-export function computeTimeline(startDate: Date, durationsWeeks: number[]): MilestoneRange[] {
-  const ranges: MilestoneRange[] = [];
-  let cursor = utcDateOnly(startDate);
-  for (const weeks of durationsWeeks) {
-    const start = cursor;
-    const end = addDaysUTC(start, weeks * 7);
-    ranges.push({ start, end });
-    cursor = end;
-  }
-  return ranges;
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
 }
 
 interface MonthOverlap {
@@ -70,13 +51,19 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+// A milestone spans [startDate, endDate] inclusive of both days; convert to a
+// half-open [start, end) range for month proration.
+function exclusiveEnd(endDate: Date): Date {
+  return addDaysUTC(endDate, 1);
+}
+
 // Hours a single milestone line (one professional's effort over one milestone)
 // contributes in total: effort% of full-time capacity, prorated by how many
 // days of each spanned month the milestone covers.
-export function lineHours(range: MilestoneRange, monthlyCapacityHours: number, effortPct: number): number {
+export function lineHours(startDate: Date, endDate: Date, monthlyCapacityHours: number, effortPct: number): number {
   const pct = effortPct / 100;
   let total = 0;
-  for (const mo of monthsInRange(range.start, range.end)) {
+  for (const mo of monthsInRange(startDate, exclusiveEnd(endDate))) {
     total += pct * monthlyCapacityHours * (mo.overlapDays / mo.daysInMonth);
   }
   return round2(total);
@@ -84,44 +71,34 @@ export function lineHours(range: MilestoneRange, monthlyCapacityHours: number, e
 
 // ---- Roll-up: milestone effort -> MonthlyAllocation.plannedHours -----------
 
-const allocKey = (employeeId: string, month: Date) => `${employeeId}|${month.toISOString().slice(0, 10)}`;
+const allocKey = (employeeId: string, month: Date) => `${employeeId}|${isoDate(month)}`;
 
 // Recompute a project's PLANNED monthly allocations from its milestones.
 // - Only planned hours are touched; actualHours (from imports) is preserved.
 // - Employees appearing on any milestone are auto-assigned to the project so
 //   they show up in the planning grid.
 // - Allocation rows no longer backed by a milestone are zeroed (kept if they
-//   still hold actuals) or removed. A project with a start date but no
-//   milestones therefore has its milestone-derived planned hours cleared.
-// - If the project has no start date, milestones can't be placed on the
-//   calendar, so we leave allocations untouched and let the UI prompt for one.
+//   still hold actuals) or removed. A project with no milestones therefore has
+//   its milestone-derived planned hours cleared.
 export async function recomputeProjectMilestoneAllocations(
   projectId: string,
   tx: Prisma.TransactionClient = prisma,
 ): Promise<void> {
-  const project = await tx.project.findUnique({
-    where: { id: projectId },
-    select: { id: true, startDate: true },
-  });
+  const project = await tx.project.findUnique({ where: { id: projectId }, select: { id: true } });
   if (!project) return;
 
   const milestones = await tx.milestone.findMany({
     where: { projectId },
-    orderBy: { sortOrder: 'asc' },
     include: { lines: { include: { employee: { select: { id: true, monthlyCapacityHours: true } } } } },
   });
 
-  if (!project.startDate) return; // can't place milestones without a start date
-
   // Build the derived planned-hours map: employee|month -> hours.
   const derived = new Map<string, { employeeId: string; month: Date; hours: number }>();
-  const ranges = computeTimeline(project.startDate, milestones.map((m) => m.durationWeeks));
-  milestones.forEach((ms, i) => {
-    const range = ranges[i];
+  for (const ms of milestones) {
     for (const line of ms.lines) {
       const cap = Number(line.employee.monthlyCapacityHours);
       const pct = Number(line.effortPct) / 100;
-      for (const mo of monthsInRange(range.start, range.end)) {
+      for (const mo of monthsInRange(ms.startDate, exclusiveEnd(ms.endDate))) {
         const hrs = pct * cap * (mo.overlapDays / mo.daysInMonth);
         const key = allocKey(line.employeeId, mo.monthStart);
         const prev = derived.get(key);
@@ -129,7 +106,7 @@ export async function recomputeProjectMilestoneAllocations(
         else derived.set(key, { employeeId: line.employeeId, month: mo.monthStart, hours: hrs });
       }
     }
-  });
+  }
   for (const v of derived.values()) v.hours = round2(v.hours);
 
   // Ensure every professional on a milestone is assigned to the project.
@@ -168,7 +145,7 @@ export async function recomputeProjectMilestoneAllocations(
   }
 }
 
-// ---- View model for the API (enriched milestones with timeline + hours) ----
+// ---- View model for the API (enriched milestones with hours) ---------------
 
 export interface MilestoneLineView {
   id: string;
@@ -183,28 +160,20 @@ export interface MilestoneLineView {
 export interface MilestoneView {
   id: string;
   name: string;
-  durationWeeks: number;
-  sortOrder: number;
-  startDate: string | null;
-  endDate: string | null;
+  startDate: string;
+  endDate: string;
   totalHours: number;
   lines: MilestoneLineView[];
 }
 
 export interface MilestonesViewResult {
-  projectStartDate: string | null;
-  hasStartDate: boolean;
   milestones: MilestoneView[];
 }
 
 export async function getMilestonesView(projectId: string): Promise<MilestonesViewResult> {
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { startDate: true },
-  });
   const milestones = await prisma.milestone.findMany({
     where: { projectId },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: [{ startDate: 'asc' }, { sortOrder: 'asc' }],
     include: {
       lines: {
         include: { employee: { select: { firstName: true, lastName: true, title: true, monthlyCapacityHours: true } } },
@@ -213,11 +182,7 @@ export async function getMilestonesView(projectId: string): Promise<MilestonesVi
     },
   });
 
-  const startDate = project?.startDate ?? null;
-  const ranges = startDate ? computeTimeline(startDate, milestones.map((m) => m.durationWeeks)) : null;
-
-  const views: MilestoneView[] = milestones.map((ms, i) => {
-    const range = ranges ? ranges[i] : null;
+  const views: MilestoneView[] = milestones.map((ms) => {
     const lines: MilestoneLineView[] = ms.lines.map((line) => ({
       id: line.id,
       employeeId: line.employeeId,
@@ -225,23 +190,17 @@ export async function getMilestonesView(projectId: string): Promise<MilestonesVi
       employeeTitle: line.employee.title,
       workType: line.workType,
       effortPct: Number(line.effortPct),
-      hours: range ? lineHours(range, Number(line.employee.monthlyCapacityHours), Number(line.effortPct)) : 0,
+      hours: lineHours(ms.startDate, ms.endDate, Number(line.employee.monthlyCapacityHours), Number(line.effortPct)),
     }));
     return {
       id: ms.id,
       name: ms.name,
-      durationWeeks: ms.durationWeeks,
-      sortOrder: ms.sortOrder,
-      startDate: range ? range.start.toISOString().slice(0, 10) : null,
-      endDate: range ? addDaysUTC(range.end, -1).toISOString().slice(0, 10) : null,
+      startDate: isoDate(ms.startDate),
+      endDate: isoDate(ms.endDate),
       totalHours: round2(lines.reduce((s, l) => s + l.hours, 0)),
       lines,
     };
   });
 
-  return {
-    projectStartDate: startDate ? startDate.toISOString().slice(0, 10) : null,
-    hasStartDate: startDate != null,
-    milestones: views,
-  };
+  return { milestones: views };
 }

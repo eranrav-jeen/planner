@@ -5,11 +5,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateBody } from '../middleware/validate.js';
 import { ApiError } from '../middleware/error.js';
 import { requireProjectAccess } from '../lib/accessScope.js';
-import {
-  milestoneInputSchema,
-  milestoneReorderSchema,
-  type MilestoneInput,
-} from '../schemas/milestone.schema.js';
+import { milestoneInputSchema, type MilestoneInput } from '../schemas/milestone.schema.js';
 import { getMilestonesView, recomputeProjectMilestoneAllocations } from '../services/milestones.service.js';
 
 // Mounted at /api/projects/:projectId/milestones (mergeParams gives projectId).
@@ -28,10 +24,13 @@ async function ensureMilestoneInProject(projectId: string, milestoneId: string):
   if (!milestone || milestone.projectId !== projectId) throw new ApiError(404, 'Milestone not found');
 }
 
+// Parse a YYYY-MM-DD date string as a UTC calendar date (matches @db.Date).
+const toDate = (s: string) => new Date(`${s}T00:00:00.000Z`);
+
 const lineCreateData = (input: MilestoneInput) =>
   input.lines.map((l) => ({ employeeId: l.employeeId, workType: l.workType, effortPct: l.effortPct }));
 
-// List milestones for a project (with computed timeline + hours).
+// List milestones for a project (ordered by start date, with computed hours).
 milestonesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -41,30 +40,7 @@ milestonesRouter.get(
   }),
 );
 
-// Reorder — must be declared before '/:milestoneId' so it isn't shadowed.
-milestonesRouter.put(
-  '/reorder',
-  requireRole('ADMIN', 'MANAGER'),
-  validateBody(milestoneReorderSchema),
-  asyncHandler(async (req, res) => {
-    const { projectId } = req.params as { projectId: string };
-    const { order } = req.body as { order: string[] };
-    const existing = await prisma.milestone.findMany({ where: { projectId }, select: { id: true } });
-    const ids = new Set(existing.map((m) => m.id));
-    if (order.length !== ids.size || order.some((id) => !ids.has(id))) {
-      throw new ApiError(400, 'Order must list exactly the milestones of this project');
-    }
-    await prisma.$transaction(async (tx) => {
-      for (let i = 0; i < order.length; i += 1) {
-        await tx.milestone.update({ where: { id: order[i] }, data: { sortOrder: i } });
-      }
-      await recomputeProjectMilestoneAllocations(projectId, tx);
-    });
-    res.json({ data: await getMilestonesView(projectId) });
-  }),
-);
-
-// Create a milestone (appended at the end).
+// Create a milestone.
 milestonesRouter.post(
   '/',
   requireRole('ADMIN', 'MANAGER'),
@@ -80,7 +56,8 @@ milestonesRouter.post(
         data: {
           projectId,
           name: input.name,
-          durationWeeks: input.durationWeeks,
+          startDate: toDate(input.startDate),
+          endDate: toDate(input.endDate),
           sortOrder,
           lines: { create: lineCreateData(input) },
         },
@@ -91,7 +68,7 @@ milestonesRouter.post(
   }),
 );
 
-// Update a milestone (name, duration, and full replacement of its lines).
+// Update a milestone (name, dates, and full replacement of its lines).
 milestonesRouter.put(
   '/:milestoneId',
   requireRole('ADMIN', 'MANAGER'),
@@ -106,7 +83,8 @@ milestonesRouter.put(
         where: { id: milestoneId },
         data: {
           name: input.name,
-          durationWeeks: input.durationWeeks,
+          startDate: toDate(input.startDate),
+          endDate: toDate(input.endDate),
           lines: { create: lineCreateData(input) },
         },
       });
@@ -116,7 +94,7 @@ milestonesRouter.put(
   }),
 );
 
-// Delete a milestone (and resequence the rest).
+// Delete a milestone.
 milestonesRouter.delete(
   '/:milestoneId',
   requireRole('ADMIN', 'MANAGER'),
@@ -125,14 +103,6 @@ milestonesRouter.delete(
     await ensureMilestoneInProject(projectId, milestoneId);
     await prisma.$transaction(async (tx) => {
       await tx.milestone.delete({ where: { id: milestoneId } });
-      const remaining = await tx.milestone.findMany({
-        where: { projectId },
-        orderBy: { sortOrder: 'asc' },
-        select: { id: true },
-      });
-      for (let i = 0; i < remaining.length; i += 1) {
-        await tx.milestone.update({ where: { id: remaining[i].id }, data: { sortOrder: i } });
-      }
       await recomputeProjectMilestoneAllocations(projectId, tx);
     });
     res.json({ data: await getMilestonesView(projectId) });

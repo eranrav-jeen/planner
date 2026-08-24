@@ -17,7 +17,6 @@ import { ApiError } from '../middleware/error.js';
 import { assertDeletable } from '../lib/prismaErrors.js';
 import { PO_UPLOAD_DIR, decodeOriginalFilename, poUpload } from '../lib/uploads.js';
 import { getAccessScope, intersectProjectIds, isProjectAccessible, requireProjectAccess } from '../lib/accessScope.js';
-import { recomputeProjectMilestoneAllocations } from '../services/milestones.service.js';
 
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
@@ -115,17 +114,7 @@ projectsRouter.put(
   requireProjectAccess('id'),
   validateBody(projectInputSchema),
   asyncHandler(async (req, res) => {
-    const before = await prisma.project.findUnique({
-      where: { id: req.params.id },
-      select: { startDate: true, _count: { select: { milestones: true } } },
-    });
     const project = await prisma.project.update({ where: { id: req.params.id }, data: req.body });
-    // If the start date moved and the project has milestones, the sequential
-    // timeline shifts, so regenerate the milestone-driven planned allocations.
-    const startChanged = (before?.startDate?.getTime() ?? null) !== (project.startDate?.getTime() ?? null);
-    if (startChanged && (before?._count.milestones ?? 0) > 0) {
-      await recomputeProjectMilestoneAllocations(project.id);
-    }
     res.json({ data: serializeDecimals(project) });
   }),
 );
