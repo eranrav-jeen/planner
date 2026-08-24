@@ -19,3 +19,9 @@ export const planActualQuerySchema = z.object({
   to: monthParam,
   customerId: z.string().uuid().optional(),
 });
+
+export const pacingQuerySchema = z.object({
+  dimension: z.enum(['customer', 'project', 'employee']),
+  period: z.enum(['month', 'quarter']),
+  month: monthParam,
+});

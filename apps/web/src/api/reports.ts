@@ -103,6 +103,52 @@ export function usePlanVsActualReport(from: string, to: string, filters: { custo
   });
 }
 
+export type PacingDimension = 'customer' | 'project' | 'employee';
+export type PacingPeriod = 'month' | 'quarter';
+export type PacingStatus =
+  | 'no_plan'
+  | 'not_started'
+  | 'under'
+  | 'met'
+  | 'over'
+  | 'behind'
+  | 'on_track'
+  | 'ahead';
+
+export interface PacingRow {
+  id: string;
+  name: string;
+  sublabel: string | null;
+  planned: number;
+  actual: number;
+  projected: number | null;
+  pctActual: number | null;
+  pctProjected: number | null;
+  remainingPlanned: number;
+  requiredPerWeek: number | null;
+  currentPerWeek: number | null;
+  status: PacingStatus;
+}
+
+export interface PacingReport {
+  dimension: PacingDimension;
+  period: PacingPeriod;
+  periodStart: string;
+  periodEnd: string;
+  totalBusinessDays: number;
+  elapsedBusinessDays: number;
+  remainingBusinessDays: number;
+  rows: PacingRow[];
+}
+
+export function usePacingReport(dimension: PacingDimension, period: PacingPeriod, month: string) {
+  const params = new URLSearchParams({ dimension, period, month });
+  return useQuery({
+    queryKey: ['reports', 'pacing', dimension, period, month],
+    queryFn: () => api.get<PacingReport>(`/reports/pacing?${params.toString()}`),
+  });
+}
+
 export interface PortfolioRow {
   customerId: string;
   customerName: string;

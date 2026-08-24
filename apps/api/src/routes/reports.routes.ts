@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validateQuery } from '../middleware/validate.js';
-import { monthRangeQuerySchema, projectFilterQuerySchema, planActualQuerySchema } from '../schemas/report.schema.js';
+import { monthRangeQuerySchema, projectFilterQuerySchema, planActualQuerySchema, pacingQuerySchema } from '../schemas/report.schema.js';
 import { asyncHandler } from '../lib/asyncHandler.js';
 import { serializeDecimals } from '../lib/serialize.js';
 import { getUtilizationReport } from '../services/utilization.service.js';
@@ -12,6 +12,7 @@ import { getPortfolioReport } from '../services/portfolio.service.js';
 import { getForecastReport } from '../services/forecast.service.js';
 import { getDashboardSummary } from '../services/summary.service.js';
 import { getPlanVsActualReport } from '../services/planActual.service.js';
+import { getPacingReport, type PacingDimension, type PacingPeriod } from '../services/planPacing.service.js';
 import {
   getAccessScope,
   getAccessibleCustomerIds,
@@ -108,6 +109,22 @@ reportsRouter.get(
     const scope = await getAccessScope(req);
     const projectIds = intersectProjectIds(scope, undefined);
     const report = await getPlanVsActualReport({ from, to, customerId, projectIds });
+    res.json({ data: serializeDecimals(report) });
+  }),
+);
+
+reportsRouter.get(
+  '/pacing',
+  validateQuery(pacingQuerySchema),
+  asyncHandler(async (req, res) => {
+    const { dimension, period, month } = req.query as unknown as {
+      dimension: PacingDimension;
+      period: PacingPeriod;
+      month: string;
+    };
+    const scope = await getAccessScope(req);
+    const projectIds = intersectProjectIds(scope, undefined);
+    const report = await getPacingReport({ dimension, period, month, projectIds });
     res.json({ data: serializeDecimals(report) });
   }),
 );
