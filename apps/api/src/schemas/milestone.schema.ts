@@ -23,6 +23,7 @@ export const milestoneInputSchema = z
     name: z.string().trim().min(1).max(200),
     startDate: dateStr,
     endDate: dateStr,
+    budget: z.number().nonnegative().max(999_999_999_999).nullable().optional(),
     lines: z.array(milestoneLineSchema).default([]),
   })
   .refine((v) => v.endDate >= v.startDate, {

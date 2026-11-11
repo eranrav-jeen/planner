@@ -25,12 +25,14 @@ export interface Milestone {
   name: string;
   startDate: string;
   endDate: string;
+  budget: number | null;
   totalHours: number;
   lines: MilestoneLine[];
 }
 
 export interface MilestonesView {
   milestones: Milestone[];
+  totalBudget: number;
 }
 
 export interface MilestoneLineInput {
@@ -43,6 +45,7 @@ export interface MilestoneInput {
   name: string;
   startDate: string;
   endDate: string;
+  budget: number | null;
   lines: MilestoneLineInput[];
 }
 

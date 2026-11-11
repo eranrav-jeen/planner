@@ -19,7 +19,7 @@ import { ConfirmDialog } from '../../components/ui/confirm-dialog';
 import { ErrorState } from '../../components/ui/error-state';
 import { useAuth, ApiRequestError } from '../../lib/auth';
 import { useLanguage } from '../../lib/i18n';
-import { formatHours, useDateFormatter } from '../../lib/format';
+import { formatCurrency, formatHours, useDateFormatter } from '../../lib/format';
 
 const WORK_TYPES: WorkType[] = [
   'specification',
@@ -44,7 +44,15 @@ function durationWeeks(startISO: string, endISO: string): number {
   return Math.max(1, Math.round(days / 7));
 }
 
-export function MilestonesTab({ projectId }: { projectId: string }) {
+export function MilestonesTab({
+  projectId,
+  currency,
+  incomeAmount,
+}: {
+  projectId: string;
+  currency: string;
+  incomeAmount: number;
+}) {
   const { t } = useLanguage();
   const { user } = useAuth();
   const canEdit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
@@ -63,11 +71,28 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
   if (isError || !data) return <ErrorState onRetry={refetch} />;
 
   const milestones = data.milestones;
+  const hasBudgets = milestones.some((m) => m.budget != null);
+  const overBudget = incomeAmount > 0 && data.totalBudget > incomeAmount;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted">{t('milestones.drivesPlan')}</p>
+        <div className="min-w-0">
+          <p className="text-xs text-muted">{t('milestones.drivesPlan')}</p>
+          {hasBudgets && (
+            <p className={`mt-1 text-sm ${overBudget ? 'text-coral' : 'text-charcoal'}`}>
+              {t('milestones.totalBudget')}:{' '}
+              <span className="font-semibold tabular-nums">{formatCurrency(data.totalBudget, currency)}</span>
+              {incomeAmount > 0 && (
+                <span className="text-muted">
+                  {' '}
+                  / {formatCurrency(incomeAmount, currency)} {t('milestones.ofProjectIncome')}
+                </span>
+              )}
+              {overBudget && <span> · {t('milestones.overIncome')}</span>}
+            </p>
+          )}
+        </div>
         {canEdit && (
           <Button
             size="sm"
@@ -96,6 +121,7 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
                     {formatDate(m.startDate)} – {formatDate(m.endDate)}
                     {` · ${durationWeeks(m.startDate, m.endDate)} ${t('milestones.week')}`}
                     {` · ${formatHours(m.totalHours)}`}
+                    {m.budget != null && ` · ${t('milestones.budget')}: ${formatCurrency(m.budget, currency)}`}
                   </p>
                 </div>
                 {canEdit && (
@@ -160,6 +186,7 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
       {formOpen && (
         <MilestoneForm
           milestone={editing}
+          currency={currency}
           isSubmitting={createM.isPending || updateM.isPending}
           onClose={() => setFormOpen(false)}
           onSubmit={(input) => {
@@ -193,11 +220,13 @@ export function MilestonesTab({ projectId }: { projectId: string }) {
 
 function MilestoneForm({
   milestone,
+  currency,
   onSubmit,
   onClose,
   isSubmitting,
 }: {
   milestone: Milestone | null;
+  currency: string;
   onSubmit: (input: MilestoneInput) => void;
   onClose: () => void;
   isSubmitting: boolean;
@@ -207,6 +236,7 @@ function MilestoneForm({
   const [name, setName] = useState(milestone?.name ?? '');
   const [startDate, setStartDate] = useState(milestone?.startDate ?? todayISO());
   const [endDate, setEndDate] = useState(milestone?.endDate ?? addDaysISO(todayISO(), 27));
+  const [budget, setBudget] = useState(milestone?.budget != null ? String(milestone.budget) : '');
   const [lines, setLines] = useState<MilestoneLineInput[]>(
     milestone?.lines.map((l) => ({ employeeId: l.employeeId, workType: l.workType, effortPct: l.effortPct })) ?? [],
   );
@@ -226,7 +256,12 @@ function MilestoneForm({
       setError(t('milestones.lineNeedsEmployee'));
       return;
     }
-    onSubmit({ name, startDate, endDate, lines });
+    const budgetValue = budget.trim() === '' ? null : Number(budget);
+    if (budgetValue != null && (!Number.isFinite(budgetValue) || budgetValue < 0)) {
+      setError(t('milestones.invalidBudget'));
+      return;
+    }
+    onSubmit({ name, startDate, endDate, budget: budgetValue, lines });
   }
 
   return (
@@ -243,6 +278,16 @@ function MilestoneForm({
             <Input type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </Field>
         </div>
+        <Field label={`${t('milestones.budgetLabel')} (${currency})`}>
+          <Input
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder={t('milestones.budgetPlaceholder')}
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+          />
+        </Field>
 
         <div>
           <div className="mb-2 flex items-center justify-between">

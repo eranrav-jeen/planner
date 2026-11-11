@@ -308,6 +308,8 @@ model Milestone {
   name          String
   startDate     DateTime @map("start_date") @db.Date
   endDate       DateTime @map("end_date") @db.Date
+  // Optional budget for this milestone, in the project's currency.
+  budget        Decimal? @db.Decimal(14, 2)
   sortOrder     Int      @map("sort_order")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")

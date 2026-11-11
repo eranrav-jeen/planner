@@ -162,12 +162,14 @@ export interface MilestoneView {
   name: string;
   startDate: string;
   endDate: string;
+  budget: number | null;
   totalHours: number;
   lines: MilestoneLineView[];
 }
 
 export interface MilestonesViewResult {
   milestones: MilestoneView[];
+  totalBudget: number;
 }
 
 export async function getMilestonesView(projectId: string): Promise<MilestonesViewResult> {
@@ -197,10 +199,12 @@ export async function getMilestonesView(projectId: string): Promise<MilestonesVi
       name: ms.name,
       startDate: isoDate(ms.startDate),
       endDate: isoDate(ms.endDate),
+      budget: ms.budget == null ? null : Number(ms.budget),
       totalHours: round2(lines.reduce((s, l) => s + l.hours, 0)),
       lines,
     };
   });
 
-  return { milestones: views };
+  const totalBudget = round2(views.reduce((s, v) => s + (v.budget ?? 0), 0));
+  return { milestones: views, totalBudget };
 }

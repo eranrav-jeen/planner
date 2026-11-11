@@ -487,6 +487,13 @@ const dictionaries = {
     'milestones.deleteTitle': 'מחיקת אבן דרך',
     'milestones.deleteDescription': 'למחוק את "{name}"? התכנון החודשי שנגזר ממנה יוסר.',
     'milestones.lineNeedsEmployee': 'בחרו איש מקצוע לכל שורה.',
+    'milestones.budget': 'תקציב',
+    'milestones.budgetLabel': 'תקציב',
+    'milestones.budgetPlaceholder': 'אופציונלי',
+    'milestones.invalidBudget': 'התקציב חייב להיות מספר אי-שלילי.',
+    'milestones.totalBudget': 'סה"כ תקציב אבני דרך',
+    'milestones.ofProjectIncome': 'מהכנסת הפרויקט',
+    'milestones.overIncome': 'חורג מהכנסת הפרויקט',
   },
   en: {
     'nav.dashboard': 'Dashboard',
@@ -972,6 +979,13 @@ const dictionaries = {
     'milestones.deleteTitle': 'Delete milestone',
     'milestones.deleteDescription': 'Delete "{name}"? Its derived monthly plan will be removed.',
     'milestones.lineNeedsEmployee': 'Pick a professional for every row.',
+    'milestones.budget': 'Budget',
+    'milestones.budgetLabel': 'Budget',
+    'milestones.budgetPlaceholder': 'Optional',
+    'milestones.invalidBudget': 'Budget must be a non-negative number.',
+    'milestones.totalBudget': 'Total milestone budget',
+    'milestones.ofProjectIncome': 'project income',
+    'milestones.overIncome': 'exceeds project income',
   },
 } as const;
 

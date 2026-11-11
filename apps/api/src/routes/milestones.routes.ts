@@ -58,6 +58,7 @@ milestonesRouter.post(
           name: input.name,
           startDate: toDate(input.startDate),
           endDate: toDate(input.endDate),
+          budget: input.budget ?? null,
           sortOrder,
           lines: { create: lineCreateData(input) },
         },
@@ -85,6 +86,7 @@ milestonesRouter.put(
           name: input.name,
           startDate: toDate(input.startDate),
           endDate: toDate(input.endDate),
+          budget: input.budget ?? null,
           lines: { create: lineCreateData(input) },
         },
       });

@@ -367,7 +367,7 @@ export function ProjectDetail() {
             <TeamTab projectId={project.id} />
           </Tabs.Content>
           <Tabs.Content value="milestones" className="p-5">
-            <MilestonesTab projectId={project.id} />
+            <MilestonesTab projectId={project.id} currency={project.currency} incomeAmount={Number(project.incomeAmount)} />
           </Tabs.Content>
           <Tabs.Content value="plan" className="p-10 text-center text-sm text-muted">
             {t('projects.planComingSoon')}
