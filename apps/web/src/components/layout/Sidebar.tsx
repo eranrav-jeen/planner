@@ -1,10 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 import { useLanguage } from '../../lib/i18n';
+import { useAuth } from '../../lib/auth';
 import { navItems } from './nav';
 
 export function Sidebar() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const items = navItems.filter((item) => !item.roles || (user != null && item.roles.includes(user.role)));
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-e border-border bg-surface">
@@ -12,7 +15,7 @@ export function Sidebar() {
         <img src="/logo.svg" alt="Jeen Solution OS" className="h-8 w-auto" />
       </div>
       <nav className="flex-1 space-y-1 px-3">
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

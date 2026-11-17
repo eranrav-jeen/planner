@@ -13,6 +13,8 @@ import { EmployeesList } from './pages/employees/EmployeesList';
 import { EmployeeDetail } from './pages/employees/EmployeeDetail';
 import { ProjectsList } from './pages/projects/ProjectsList';
 import { ProjectDetail } from './pages/projects/ProjectDetail';
+import { BidsList } from './pages/bids/BidsList';
+import { BidDetail } from './pages/bids/BidDetail';
 import { Planning } from './pages/planning/Planning';
 import { Reports } from './pages/reports/Reports';
 import { GanttPage } from './pages/gantt/Gantt';
@@ -42,6 +44,8 @@ export default function App() {
         <Route path="employees/:id" element={<EmployeeDetail />} />
         <Route path="projects" element={<ProjectsList />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
+        <Route path="bids" element={<BidsList />} />
+        <Route path="bids/:id" element={<BidDetail />} />
         <Route path="planning" element={<Planning />} />
         <Route path="reports" element={<Reports />} />
         <Route path="gantt" element={<GanttPage />} />
