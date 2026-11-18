@@ -48,6 +48,21 @@ enum MilestoneWorkType {
   project_management // ניהול פרויקט
 }
 
+enum BidStatus {
+  evaluating // בבדיקה
+  applying   // בהגשה
+  submitted  // הוגש
+  won        // זכינו
+  lost       // הפסדנו
+  no_bid     // לא ניגשים
+}
+
+enum BidStageStatus {
+  pending
+  done
+  skipped
+}
+
 model User {
   id         String    @id @default(uuid())
   email      String    @unique
@@ -175,6 +190,7 @@ model Project {
   accessGrants ProjectAccess[]
   timeActuals TimeEntryActual[]
   milestones  Milestone[]
+  bid         Bid?
 
   @@index([customerId])
   @@index([status])
@@ -336,4 +352,96 @@ model MilestoneAssignment {
   @@index([milestoneId])
   @@index([employeeId])
   @@map("milestone_assignments")
+}
+
+// A tender / bid the company is pursuing (מכרז / קול קורא / תיחור). Tracks the
+// pursuit timeline, eligibility + scoring criteria, and — once won — the
+// payment outputs. Optionally linked to the delivery Project created on a win.
+model Bid {
+  id             String    @id @default(uuid())
+  title          String
+  issuer         String?   // מפרסם
+  description    String?   // תיאור קצר
+  status         BidStatus @default(evaluating)
+  submissionDate DateTime? @map("submission_date") @db.Date
+  winProbability Int?      @map("win_probability") // 0–100
+  estimatedValue Decimal?  @map("estimated_value") @db.Decimal(14, 2)
+  budgetNote     String?   @map("budget_note")
+  competitors    String?   // מתחרים
+  partners       String?   // שותפים
+  notes          String?
+  projectId      String?   @unique @map("project_id")
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  stages          BidStage[]
+  thresholds      BidThreshold[]
+  scoringCriteria BidScoringCriterion[]
+  payments        BidPayment[]
+
+  @@index([status])
+  @@map("bids")
+}
+
+// A dated step in a bid's process (כנס ספקים, שאלות הבהרה, הגשה, ראיון …).
+model BidStage {
+  id        String         @id @default(uuid())
+  bidId     String         @map("bid_id")
+  bid       Bid            @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  label     String
+  dueDate   DateTime?      @map("due_date") @db.Date
+  status    BidStageStatus @default(pending)
+  notes     String?
+  sortOrder Int            @map("sort_order")
+
+  @@index([bidId])
+  @@map("bid_stages")
+}
+
+// An eligibility / threshold condition (תנאי סף) — met or not.
+model BidThreshold {
+  id        String  @id @default(uuid())
+  bidId     String  @map("bid_id")
+  bid       Bid     @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  label     String
+  met       Boolean @default(false)
+  notes     String?
+  sortOrder Int     @map("sort_order")
+
+  @@index([bidId])
+  @@map("bid_thresholds")
+}
+
+// A scoring criterion (שיטת ניקוד) with its weight and our self-assessed score.
+model BidScoringCriterion {
+  id        String   @id @default(uuid())
+  bidId     String   @map("bid_id")
+  bid       Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  label     String
+  weight    Decimal  @db.Decimal(5, 2) // percent weight of the total score
+  ourScore  Decimal? @map("our_score") @db.Decimal(5, 2) // 0–100 self assessment
+  notes     String?
+  sortOrder Int      @map("sort_order")
+
+  @@index([bidId])
+  @@map("bid_scoring_criteria")
+}
+
+// A payment output / deliverable (תוצר) on a won bid, with its paid state.
+model BidPayment {
+  id        String    @id @default(uuid())
+  bidId     String    @map("bid_id")
+  bid       Bid       @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  label     String
+  amount    Decimal   @db.Decimal(14, 2)
+  dueDate   DateTime? @map("due_date") @db.Date
+  paid      Boolean   @default(false)
+  paidDate  DateTime? @map("paid_date") @db.Date
+  poNumber  String?   @map("po_number")
+  notes     String?
+  sortOrder Int       @map("sort_order")
+
+  @@index([bidId])
+  @@map("bid_payments")
 }
