@@ -30,6 +30,8 @@ import { BidForm } from './BidForm';
 import { bidStatusClass } from './BidsList';
 
 const STAGE_STATUSES: BidStageStatus[] = ['pending', 'done', 'skipped'];
+const VAT_RATE = 0.18;
+const withVat = (n: number) => Math.round(n * (1 + VAT_RATE) * 100) / 100;
 
 function SectionShell({
   title,
@@ -203,6 +205,9 @@ function PaymentsSection({ bid }: { bid: Bid }) {
               <div key={i} className="flex flex-wrap items-center gap-2">
                 <Input className="min-w-40 flex-1" value={it.label} placeholder={t('bids.payment.colLabel')} onChange={(e) => up(i, { label: e.target.value })} />
                 <Input className="w-28" type="number" min={0} value={it.amount} placeholder={t('bids.payment.amount')} onChange={(e) => up(i, { amount: Number(e.target.value) })} />
+                <span className="w-28 text-xs text-muted tabular-nums" title={t('bids.payment.inclVat')}>
+                  {t('bids.payment.inclVat')}: {formatCurrency(withVat(it.amount || 0), 'ILS')}
+                </span>
                 <Input className="w-28" value={it.poNumber ?? ''} placeholder={t('bids.payment.poNumber')} onChange={(e) => up(i, { poNumber: e.target.value || null })} />
                 <Input className="w-36" type="date" value={it.dueDate ?? ''} title={t('bids.payment.due')} onChange={(e) => up(i, { dueDate: e.target.value || null })} />
                 <label className="flex items-center gap-1 text-xs text-muted">
@@ -215,7 +220,7 @@ function PaymentsSection({ bid }: { bid: Bid }) {
             ))}
           </div>
           <p className="mt-3 text-xs text-muted">
-            {t('bids.payment.total')}: {formatCurrency(total, 'ILS')} · {t('bids.payment.paidOf', { paid: formatCurrency(paid, 'ILS'), total: formatCurrency(total, 'ILS') })}
+            {t('bids.payment.total')}: {formatCurrency(total, 'ILS')} · {t('bids.payment.totalInclVat')}: {formatCurrency(withVat(total), 'ILS')} · {t('bids.payment.paidOf', { paid: formatCurrency(paid, 'ILS'), total: formatCurrency(total, 'ILS') })}
           </p>
         </>
       )}
