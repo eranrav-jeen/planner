@@ -183,16 +183,17 @@ function ScoringSection({ bid }: { bid: Bid }) {
 function PaymentsSection({ bid }: { bid: Bid }) {
   const { t } = useLanguage();
   const [items, setItems] = useState<PaymentInput[]>(
-    bid.payments.map((p) => ({ label: p.label, amount: p.amount, dueDate: p.dueDate, paid: p.paid, paidDate: p.paidDate, poNumber: p.poNumber, notes: p.notes })),
+    bid.payments.map((p) => ({ label: p.label, amount: p.amount, sentForPayment: p.sentForPayment, paid: p.paid, poNumber: p.poNumber, notes: p.notes })),
   );
   const replace = useReplacePayments(bid.id);
   const up = (i: number, patch: Partial<PaymentInput>) => setItems(items.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
   const total = items.reduce((s, i) => s + (i.amount || 0), 0);
   const paid = items.filter((i) => i.paid).reduce((s, i) => s + (i.amount || 0), 0);
+  const sent = items.filter((i) => i.sentForPayment || i.paid).reduce((s, i) => s + (i.amount || 0), 0);
   return (
     <SectionShell
       title={t('bids.sections.payments')}
-      onAdd={() => setItems([...items, { label: '', amount: 0, dueDate: null, paid: false, paidDate: null, poNumber: null, notes: null }])}
+      onAdd={() => setItems([...items, { label: '', amount: 0, sentForPayment: false, paid: false, poNumber: null, notes: null }])}
       onSave={() => replace.mutate(items.filter((i) => i.label.trim()))}
       saving={replace.isPending}
     >
@@ -209,18 +210,29 @@ function PaymentsSection({ bid }: { bid: Bid }) {
                   {t('bids.payment.inclVat')}: {formatCurrency(withVat(it.amount || 0), 'ILS')}
                 </span>
                 <Input className="w-28" value={it.poNumber ?? ''} placeholder={t('bids.payment.poNumber')} onChange={(e) => up(i, { poNumber: e.target.value || null })} />
-                <Input className="w-36" type="date" value={it.dueDate ?? ''} title={t('bids.payment.due')} onChange={(e) => up(i, { dueDate: e.target.value || null })} />
+                {/* Paid implies sent: ticking paid ticks sent, unticking sent unticks paid. */}
+                <label className="flex items-center gap-1 text-xs text-muted" title={t('bids.payment.sentHint')}>
+                  <input
+                    type="checkbox"
+                    checked={it.sentForPayment || it.paid}
+                    onChange={(e) => up(i, e.target.checked ? { sentForPayment: true } : { sentForPayment: false, paid: false })}
+                  />
+                  {t('bids.payment.sent')}
+                </label>
                 <label className="flex items-center gap-1 text-xs text-muted">
-                  <input type="checkbox" checked={it.paid} onChange={(e) => up(i, { paid: e.target.checked, paidDate: e.target.checked ? it.paidDate ?? new Date().toISOString().slice(0, 10) : it.paidDate })} />
+                  <input
+                    type="checkbox"
+                    checked={it.paid}
+                    onChange={(e) => up(i, e.target.checked ? { paid: true, sentForPayment: true } : { paid: false })}
+                  />
                   {t('bids.payment.paid')}
                 </label>
-                <Input className="w-36" type="date" value={it.paidDate ?? ''} title={t('bids.payment.paidDate')} onChange={(e) => up(i, { paidDate: e.target.value || null })} />
                 <RemoveBtn onClick={() => setItems(items.filter((_, idx) => idx !== i))} />
               </div>
             ))}
           </div>
           <p className="mt-3 text-xs text-muted">
-            {t('bids.payment.total')}: {formatCurrency(total, 'ILS')} · {t('bids.payment.totalInclVat')}: {formatCurrency(withVat(total), 'ILS')} · {t('bids.payment.paidOf', { paid: formatCurrency(paid, 'ILS'), total: formatCurrency(total, 'ILS') })}
+            {t('bids.payment.total')}: {formatCurrency(total, 'ILS')} · {t('bids.payment.totalInclVat')}: {formatCurrency(withVat(total), 'ILS')} · {t('bids.payment.sentOf', { sent: formatCurrency(sent, 'ILS') })} · {t('bids.payment.paidOf', { paid: formatCurrency(paid, 'ILS'), total: formatCurrency(total, 'ILS') })}
           </p>
         </>
       )}

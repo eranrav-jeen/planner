@@ -435,9 +435,9 @@ model BidPayment {
   bid       Bid       @relation(fields: [bidId], references: [id], onDelete: Cascade)
   label     String
   amount    Decimal   @db.Decimal(14, 2)
-  dueDate   DateTime? @map("due_date") @db.Date
+  // Two-step tracking: the milestone was delivered and invoiced, then paid.
+  sentForPayment Boolean @default(false) @map("sent_for_payment")
   paid      Boolean   @default(false)
-  paidDate  DateTime? @map("paid_date") @db.Date
   poNumber  String?   @map("po_number")
   notes     String?
   sortOrder Int       @map("sort_order")

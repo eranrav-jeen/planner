@@ -31,9 +31,8 @@ export interface BidPayment {
   id: string;
   label: string;
   amount: number;
-  dueDate: string | null;
+  sentForPayment: boolean;
   paid: boolean;
-  paidDate: string | null;
   poNumber: string | null;
   notes: string | null;
   sortOrder: number;
@@ -87,12 +86,35 @@ export interface BidSummary {
   byStatus: Partial<Record<BidStatus, number>>;
   pipelineValue: number;
   weightedValue: number;
+  today: string;
   wonValue: number;
   paymentsTotal: number;
+  paymentsSent: number;
   paymentsPaid: number;
+  paymentsAwaiting: number;
   paymentsOutstanding: number;
-  overduePayments: number;
-  upcoming: { id: string; title: string; submissionDate: string | null; status: BidStatus }[];
+  timeline: BidTimelineItem[];
+  wonBids: WonBidPayments[];
+}
+
+// A pending, dated stage of an active bid, for the dashboard timeline.
+export interface BidTimelineItem {
+  stageId: string;
+  bidId: string;
+  bidTitle: string;
+  bidStatus: BidStatus;
+  label: string;
+  date: string;
+  notes: string | null;
+}
+
+// Payment progress of one won bid. `sent` includes amounts already paid.
+export interface WonBidPayments {
+  id: string;
+  title: string;
+  total: number;
+  sent: number;
+  paid: number;
 }
 
 export interface BidCoreInput {
@@ -113,7 +135,7 @@ export interface BidCoreInput {
 export type StageInput = Pick<BidStage, 'label' | 'dueDate' | 'status' | 'notes'>;
 export type ThresholdInput = Pick<BidThreshold, 'label' | 'met' | 'notes'>;
 export type ScoringInput = Pick<BidScoringCriterion, 'label' | 'weight' | 'ourScore' | 'notes'>;
-export type PaymentInput = Pick<BidPayment, 'label' | 'amount' | 'dueDate' | 'paid' | 'paidDate' | 'poNumber' | 'notes'>;
+export type PaymentInput = Pick<BidPayment, 'label' | 'amount' | 'sentForPayment' | 'paid' | 'poNumber' | 'notes'>;
 
 export function useBids() {
   return useQuery({ queryKey: ['bids'], queryFn: () => api.get<BidListRow[]>('/bids') });

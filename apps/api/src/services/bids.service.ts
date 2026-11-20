@@ -64,68 +64,107 @@ export async function getBidsList() {
   });
 }
 
+// Upcoming-dates window for the dashboard timeline.
+const TIMELINE_DAYS = 60;
+const TIMELINE_MAX_ITEMS = 24;
+
+// Today's calendar date in Israel (stage dates are plain calendar dates).
+function todayIsoIL(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date());
+}
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
 export async function getBidsSummary() {
   const bids = await prisma.bid.findMany({
+    orderBy: { createdAt: 'asc' },
     select: {
       id: true,
       title: true,
       status: true,
-      submissionDate: true,
       winProbability: true,
       estimatedValue: true,
-      payments: { select: { amount: true, paid: true, dueDate: true } },
+      stages: {
+        where: { status: 'pending', dueDate: { not: null } },
+        select: { id: true, label: true, dueDate: true, notes: true },
+      },
+      payments: { select: { amount: true, sentForPayment: true, paid: true } },
     },
   });
+
+  const todayIso = todayIsoIL();
+  const horizon = new Date(`${todayIso}T00:00:00.000Z`);
+  horizon.setUTCDate(horizon.getUTCDate() + TIMELINE_DAYS);
+  const horizonIso = horizon.toISOString().slice(0, 10);
 
   const byStatus: Record<string, number> = {};
   let pipelineValue = 0;
   let weightedValue = 0;
   let wonValue = 0;
   let paymentsTotal = 0;
+  let paymentsSent = 0;
   let paymentsPaid = 0;
-  let overduePayments = 0;
-
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const timeline: Array<{
+    stageId: string;
+    bidId: string;
+    bidTitle: string;
+    bidStatus: string;
+    label: string;
+    date: string;
+    notes: string | null;
+  }> = [];
+  const wonBids: Array<{ id: string; title: string; total: number; sent: number; paid: number }> = [];
 
   for (const b of bids) {
     byStatus[b.status] = (byStatus[b.status] ?? 0) + 1;
     const value = Number(b.estimatedValue ?? 0);
+
     if ((ACTIVE_STATUSES as readonly string[]).includes(b.status)) {
       pipelineValue += value;
       weightedValue += value * ((b.winProbability ?? 0) / 100);
+      for (const st of b.stages) {
+        const date = st.dueDate!.toISOString().slice(0, 10);
+        if (date >= todayIso && date <= horizonIso) {
+          timeline.push({ stageId: st.id, bidId: b.id, bidTitle: b.title, bidStatus: b.status, label: st.label, date, notes: st.notes });
+        }
+      }
     }
+
     if (b.status === 'won') {
       wonValue += value;
+      let total = 0;
+      let sent = 0;
+      let paid = 0;
       for (const p of b.payments) {
         const amt = Number(p.amount);
-        paymentsTotal += amt;
-        if (p.paid) paymentsPaid += amt;
-        else if (p.dueDate && p.dueDate.toISOString().slice(0, 10) < todayIso) overduePayments += 1;
+        total += amt;
+        if (p.paid) paid += amt;
+        // "Sent" counts everything invoiced, including what has since been paid.
+        if (p.sentForPayment || p.paid) sent += amt;
       }
+      paymentsTotal += total;
+      paymentsSent += sent;
+      paymentsPaid += paid;
+      wonBids.push({ id: b.id, title: b.title, total: round2(total), sent: round2(sent), paid: round2(paid) });
     }
   }
 
-  const upcoming = bids
-    .filter(
-      (b) =>
-        (ACTIVE_STATUSES as readonly string[]).includes(b.status) &&
-        b.submissionDate &&
-        b.submissionDate.toISOString().slice(0, 10) >= todayIso,
-    )
-    .sort((a, b) => a.submissionDate!.getTime() - b.submissionDate!.getTime())
-    .slice(0, 6)
-    .map((b) => ({ id: b.id, title: b.title, submissionDate: b.submissionDate, status: b.status }));
+  timeline.sort((a, b) => a.date.localeCompare(b.date) || a.bidTitle.localeCompare(b.bidTitle));
 
   return {
     total: bids.length,
     byStatus,
-    pipelineValue: Math.round(pipelineValue * 100) / 100,
-    weightedValue: Math.round(weightedValue * 100) / 100,
-    wonValue: Math.round(wonValue * 100) / 100,
-    paymentsTotal: Math.round(paymentsTotal * 100) / 100,
-    paymentsPaid: Math.round(paymentsPaid * 100) / 100,
-    paymentsOutstanding: Math.round((paymentsTotal - paymentsPaid) * 100) / 100,
-    overduePayments,
-    upcoming,
+    today: todayIso,
+    pipelineValue: round2(pipelineValue),
+    weightedValue: round2(weightedValue),
+    wonValue: round2(wonValue),
+    paymentsTotal: round2(paymentsTotal),
+    paymentsSent: round2(paymentsSent),
+    paymentsPaid: round2(paymentsPaid),
+    // Sent for payment but not yet paid.
+    paymentsAwaiting: round2(paymentsSent - paymentsPaid),
+    paymentsOutstanding: round2(paymentsTotal - paymentsPaid),
+    timeline: timeline.slice(0, TIMELINE_MAX_ITEMS),
+    wonBids,
   };
 }

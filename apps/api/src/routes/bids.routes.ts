@@ -194,9 +194,8 @@ bidsRouter.put(
       items: Array<{
         label: string;
         amount: number;
-        dueDate?: string | null;
+        sentForPayment: boolean;
         paid: boolean;
-        paidDate?: string | null;
         poNumber?: string | null;
         notes?: string | null;
       }>;
@@ -208,9 +207,9 @@ bidsRouter.put(
           bidId: req.params.id,
           label: it.label,
           amount: it.amount,
-          dueDate: toDate(it.dueDate),
+          // A paid milestone was necessarily sent for payment first.
+          sentForPayment: it.sentForPayment || it.paid,
           paid: it.paid,
-          paidDate: toDate(it.paidDate),
           poNumber: it.poNumber ?? null,
           notes: it.notes ?? null,
           sortOrder: i,

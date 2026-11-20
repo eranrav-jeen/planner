@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useBids, useBidsSummary, useCreateBid, type BidListRow, type BidStatus } from '../../api/bids';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/card';
@@ -10,6 +10,7 @@ import { useLanguage } from '../../lib/i18n';
 import { formatCurrency, useDateFormatter } from '../../lib/format';
 import { cn } from '../../lib/utils';
 import { BidForm } from './BidForm';
+import { BidsDashboard } from './BidsDashboard';
 
 const STATUS_ORDER: BidStatus[] = ['evaluating', 'applying', 'submitted', 'won', 'lost', 'no_bid'];
 
@@ -76,20 +77,20 @@ export function BidsList() {
             label={t('bids.dash.payments')}
             value={`${formatCurrency(summary.paymentsPaid, 'ILS')} / ${formatCurrency(summary.paymentsTotal, 'ILS')}`}
             sub={
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap gap-x-2">
+                <span>
+                  {t('bids.dash.awaiting')}: {formatCurrency(summary.paymentsAwaiting, 'ILS')}
+                </span>
                 <span>
                   {t('bids.dash.outstanding')}: {formatCurrency(summary.paymentsOutstanding, 'ILS')}
                 </span>
-                {summary.overduePayments > 0 && (
-                  <span className="flex items-center gap-1 text-coral">
-                    <AlertTriangle className="h-3 w-3" /> {t('bids.dash.overdue', { n: summary.overduePayments })}
-                  </span>
-                )}
               </span>
             }
           />
         </div>
       )}
+
+      {summary && <BidsDashboard summary={summary} />}
 
       {summary && (
         <div className="mb-6 flex flex-wrap gap-2">

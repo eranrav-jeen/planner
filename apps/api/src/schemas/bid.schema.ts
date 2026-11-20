@@ -66,9 +66,8 @@ export const paymentsReplaceSchema = z.object({
       z.object({
         label: z.string().trim().min(1).max(300),
         amount: z.number().min(0),
-        dueDate: optDate,
+        sentForPayment: z.boolean().default(false),
         paid: z.boolean().default(false),
-        paidDate: optDate,
         poNumber: z.string().trim().max(100).nullish(),
         notes: optText,
       }),
